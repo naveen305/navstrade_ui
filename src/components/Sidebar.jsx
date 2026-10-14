@@ -1,34 +1,34 @@
 import React from 'react';
 import { useTrading } from '../context/TradingContext';
 import {
-  LayoutDashboard, Layers, Cpu, ShieldCheck, Radar, TrendingUp
+  LayoutDashboard, Layers, Cpu, ShieldCheck, Radar, Shield, CheckCircle2
 } from 'lucide-react';
 
 const NAV = [
-  { id: 'terminal',          icon: LayoutDashboard, label: 'Terminal' },
-  { id: 'option_chain',      icon: Layers,          label: 'Option Chain' },
-  { id: 'strategy_builder',  icon: Cpu,             label: 'Strategies' },
-  { id: 'risk_engine',       icon: ShieldCheck,     label: 'Risk Engine' },
-  { id: 'scanner',           icon: Radar,           label: 'Scanner' },
+  { id: 'terminal',         icon: LayoutDashboard, label: 'Live Terminal' },
+  { id: 'option_chain',     icon: Layers,          label: 'Option Chain' },
+  { id: 'strategy_builder', icon: Cpu,             label: 'Strategies' },
+  { id: 'risk_engine',      icon: ShieldCheck,     label: 'Risk Engine' },
+  { id: 'scanner',          icon: Radar,           label: 'F&O Scanner' },
 ];
 
 export const Sidebar = () => {
-  const { activeTab, setActiveTab, positions, riskRules } = useTrading();
+  const { activeTab, setActiveTab, positions, riskRules, scannerSignals } = useTrading();
 
   return (
     <aside style={S.sidebar}>
-      {/* Navigation */}
+      {/* Navigation list */}
       <nav style={S.nav}>
+        <div style={S.navHeader}>WORKSPACES</div>
         {NAV.map(({ id, icon: Icon, label }) => {
           const active = activeTab === id;
-          // Live badge
           let badge = null;
-          if (id === 'terminal' && positions.length > 0) badge = { text: positions.length, color: 'var(--accent)' };
+          if (id === 'terminal' && positions.length > 0) badge = { text: positions.length, isPill: true };
           if (id === 'risk_engine') badge = {
-            text: riskRules.killSwitchActive ? '!' : 'OK',
-            color: riskRules.killSwitchActive ? 'var(--down)' : 'var(--up)'
+            text: riskRules.killSwitchActive ? 'LOCKED' : 'ACTIVE',
+            color: riskRules.killSwitchActive ? 'var(--down)' : 'var(--text-secondary)'
           };
-          if (id === 'scanner') badge = { text: '4', color: 'var(--warn)' };
+          if (id === 'scanner') badge = { text: scannerSignals.length, isPill: true };
 
           return (
             <button
@@ -40,22 +40,34 @@ export const Sidebar = () => {
               onClick={() => setActiveTab(id)}
             >
               <Icon
-                size={15}
-                style={{ color: active ? 'var(--text-white)' : 'var(--text-muted)', flexShrink: 0 }}
+                size={14}
+                style={{
+                  color: active ? '#60a5fa' : 'var(--text-muted)',
+                  flexShrink: 0
+                }}
               />
               <span style={{
-                fontSize: '12px', fontWeight: active ? 600 : 400,
+                fontSize: '11.5px',
+                fontWeight: active ? 600 : 400,
                 color: active ? 'var(--text-white)' : 'var(--text-secondary)',
-                flex: 1, textAlign: 'left',
+                flex: 1,
+                textAlign: 'left',
               }}>
                 {label}
               </span>
               {badge && (
-                <span style={{
-                  fontSize: '10px', fontWeight: 700,
-                  color: badge.color,
-                  fontFamily: 'var(--font-data)',
-                }}>
+                <span
+                  className="font-data"
+                  style={{
+                    fontSize: '9.5px',
+                    fontWeight: 600,
+                    color: badge.color || 'var(--text-muted)',
+                    background: badge.isPill ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+                    padding: badge.isPill ? '1px 5px' : '0',
+                    borderRadius: '2px',
+                    border: badge.isPill ? '1px solid var(--border-1)' : 'none',
+                  }}
+                >
                   {badge.text}
                 </span>
               )}
@@ -64,20 +76,31 @@ export const Sidebar = () => {
         })}
       </nav>
 
-      {/* Bottom discipline metric */}
+      {/* Institutional Execution Rules Footer */}
       <div style={S.footer}>
-        <div style={S.disciplineBox}>
-          <div style={S.discHeader}>
-            <TrendingUp size={11} style={{ color: 'var(--text-muted)' }} />
-            <span style={S.discLabel}>Discipline Score</span>
-            <span style={{ marginLeft: 'auto', fontSize: '11px', fontWeight: 700, color: 'var(--up)', fontFamily: 'var(--font-data)' }}>
-              {riskRules.disciplineScore}%
-            </span>
+        <div style={S.rulesCard}>
+          <div style={S.rulesHdr}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span className="live-dot" style={{ width: 4, height: 4 }} />
+              <span style={S.rulesTitle}>RISK DISCIPLINE</span>
+            </div>
+            <span style={{ fontSize: '9px', color: 'var(--up)', fontWeight: 600 }}>ENFORCED</span>
           </div>
-          <div style={S.progTrack}>
-            <div style={{ ...S.progFill, width: `${riskRules.disciplineScore}%` }} />
+
+          <div style={S.rulesList}>
+            <div style={S.ruleRow}>
+              <span style={S.ruleLbl}>Cap Risk / Trade</span>
+              <span className="font-data" style={S.ruleVal}>{riskRules.maxCapitalRiskPct}% (Max)</span>
+            </div>
+            <div style={S.ruleRow}>
+              <span style={S.ruleLbl}>Max Open Pos</span>
+              <span className="font-data" style={S.ruleVal}>{positions.length} / {riskRules.maxOpenTrades}</span>
+            </div>
+            <div style={S.ruleRow}>
+              <span style={S.ruleLbl}>Auto Trailing SL</span>
+              <span className="font-data" style={{ ...S.ruleVal, color: 'var(--up)' }}>Active (1:1.5)</span>
+            </div>
           </div>
-          <div style={S.discSub}>4-day disciplined streak</div>
         </div>
       </div>
     </aside>
@@ -94,48 +117,81 @@ const S = {
     flexDirection: 'column',
     height: '100%',
     flexShrink: 0,
+    userSelect: 'none',
   },
   nav: {
     padding: '8px 6px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '1px',
+    gap: '2px',
     flex: 1,
+  },
+  navHeader: {
+    fontSize: '9px',
+    fontWeight: 700,
+    color: 'var(--text-muted)',
+    letterSpacing: '0.08em',
+    padding: '6px 8px 4px',
   },
   navItem: {
     display: 'flex',
     alignItems: 'center',
-    gap: '9px',
-    padding: '7px 10px',
-    borderRadius: '4px',
+    gap: '8px',
+    padding: '6px 8px',
+    borderRadius: '3px',
     background: 'transparent',
     border: '1px solid transparent',
+    borderLeft: '2px solid transparent',
     cursor: 'pointer',
     width: '100%',
     transition: 'all 120ms ease',
   },
   navActive: {
-    background: 'var(--bg-selected)',
-    border: '1px solid var(--border-2)',
+    background: 'rgba(59, 130, 246, 0.08)',
+    borderLeft: '2px solid #3b82f6',
+    borderColor: 'var(--border-1)',
   },
   footer: {
     borderTop: '1px solid var(--border-1)',
-    padding: '10px 10px 12px',
+    padding: '8px',
   },
-  disciplineBox: {
-    padding: '8px 10px',
+  rulesCard: {
+    padding: '8px',
     background: 'var(--bg-panel)',
     border: '1px solid var(--border-1)',
-    borderRadius: '4px',
+    borderRadius: '3px',
   },
-  discHeader: { display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '6px' },
-  discLabel: { fontSize: '10.5px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' },
-  progTrack: { height: '4px', background: '#2a2a2a', borderRadius: '2px', overflow: 'hidden', marginBottom: '5px' },
-  progFill: {
-    height: '100%',
-    background: 'var(--up)',
-    borderRadius: '2px',
-    transition: 'width 0.4s ease',
+  rulesHdr: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: '6px',
+    paddingBottom: '4px',
+    borderBottom: '1px solid var(--border-1)',
   },
-  discSub: { fontSize: '10px', color: 'var(--text-muted)' },
+  rulesTitle: {
+    fontSize: '9px',
+    color: 'var(--text-secondary)',
+    fontWeight: 700,
+    letterSpacing: '0.06em',
+  },
+  rulesList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+  },
+  ruleRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  ruleLbl: {
+    fontSize: '10px',
+    color: 'var(--text-muted)',
+  },
+  ruleVal: {
+    fontSize: '10.5px',
+    color: 'var(--text-secondary)',
+    fontWeight: 500,
+  },
 };

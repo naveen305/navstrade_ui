@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useTrading } from '../../context/TradingContext';
-import { ShieldCheck, AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, CheckCircle2, Lock, Sliders, Activity } from 'lucide-react';
 
 export const RiskDisciplineView = () => {
-  const { riskRules, updateRiskSettings, totalNetPnl, accountCapital } = useTrading();
+  const { riskRules, updateRiskSettings, totalNetPnl, accountCapital, showToast } = useTrading();
 
   const [form, setForm] = useState({
     maxDailyLoss: riskRules.maxDailyLoss,
@@ -12,256 +12,401 @@ export const RiskDisciplineView = () => {
     autoTrailingSl: riskRules.autoTrailingSl,
   });
 
-  const drawnPct = Math.min(100, Math.max(0, (Math.abs(Math.min(0, totalNetPnl)) / riskRules.maxDailyLoss) * 100));
+  const [saved, setSaved] = useState(false);
 
-  const rules = [
+  const currentLoss = Math.max(0, -totalNetPnl);
+  const drawnPct = Math.min(100, (currentLoss / Number(form.maxDailyLoss)) * 100);
+
+  const handleSave = (e) => {
+    e.preventDefault();
+    updateRiskSettings({
+      maxDailyLoss: Number(form.maxDailyLoss),
+      maxCapitalRiskPct: Number(form.maxCapitalRiskPct),
+      maxOpenTrades: Number(form.maxOpenTrades),
+      autoTrailingSl: Boolean(form.autoTrailingSl),
+    });
+    setSaved(true);
+    showToast('Risk parameters saved & armed at router level', 'success');
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const circuitBreakers = [
     {
-      id: 'revenge',
       title: 'Anti-Revenge Cooldown (20 min)',
-      desc: 'After 2 consecutive stop-losses, new order entry is blocked for 20 minutes to prevent impulsive re-entry.',
-      status: 'active',
+      desc: 'After 2 consecutive stop-outs, order placement is paused for 20 minutes to prevent impulsive re-entry.',
+      active: true,
     },
     {
-      id: 'mandatory_sl',
-      title: 'Mandatory Stop Loss',
-      desc: 'No order can be submitted without a predefined stop loss. Naked option buying without SL is blocked at the router level.',
-      status: 'active',
+      title: 'Mandatory Stop-Loss Verification',
+      desc: 'No order can reach Upstox API without an explicit hard stop loss price defined.',
+      active: true,
     },
     {
-      id: 'profit_lock',
-      title: 'Profit Locking (50% of peak gain)',
-      desc: 'When a position gains 20% ROI, 50% of peak profit is locked by moving the trailing SL. Prevents giving back profits.',
-      status: 'active',
+      title: 'Dynamic Profit Locking (50% of peak ROI)',
+      desc: 'Once a position hits 20% ROI, the trailing stop automatically moves to lock in 50% of peak unrealized profit.',
+      active: true,
     },
     {
-      id: 'auto_sqoff',
       title: 'Auto Square-Off at 15:15 IST',
-      desc: 'All option buyer legs are closed before end of day. Eliminates overnight gap risk and expiry-day theta blowups.',
-      status: 'active',
+      desc: 'Closes all intraday option buyer positions 15 minutes before cash market close to eliminate overnight gap risk.',
+      active: true,
     },
     {
-      id: 'oversize',
-      title: 'Over-sizing Guard',
-      desc: `Any order that risks more than ${form.maxCapitalRiskPct}% of capital is rejected before reaching Upstox API.`,
-      status: 'active',
+      title: 'Over-Sizing Protection',
+      desc: `Orders requiring risk greater than ${form.maxCapitalRiskPct}% of capital are automatically downsized or rejected.`,
+      active: true,
     },
   ];
 
   return (
     <div style={S.root}>
-      {/* Page title bar */}
-      <div style={S.titleBar}>
-        <div style={S.titleLeft}>
-          <ShieldCheck size={16} style={{ color: riskRules.killSwitchActive ? 'var(--down)' : 'var(--up)' }} />
-          <span style={S.pageTitle}>Risk & Discipline Engine</span>
-          <span style={{ ...S.tag, ...(riskRules.killSwitchActive ? S.tagDanger : S.tagOk) }}>
-            {riskRules.killSwitchActive ? 'Kill Switch TRIPPED' : 'Shield Active'}
+      {/* ── Toolbar ── */}
+      <div style={S.toolbar}>
+        <div style={S.toolLeft}>
+          <ShieldCheck size={14} style={{ color: riskRules.killSwitchActive ? 'var(--down)' : 'var(--up)' }} />
+          <span style={S.pageTitle}>Institutional Risk & Discipline Engine</span>
+          <span className={riskRules.killSwitchActive ? 'tag tag-down' : 'tag tag-up'}>
+            {riskRules.killSwitchActive ? 'KILL SWITCH TRIGGERED' : 'RISK GATES ACTIVE'}
           </span>
         </div>
-        <p style={S.pageDesc}>
-          Institutional guardrails hardcoded into execution. Replaces human emotion with systematic rules.
-          Over 90% of retail F&O traders lose due to emotional breakdowns — not bad analysis.
-        </p>
+        <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
+          Rule enforcement: Client router & Upstox Pre-Trade Validation
+        </div>
       </div>
 
-      <div style={S.body}>
-        {/* Left: Settings */}
+      {/* ── Content Grid ── */}
+      <div style={S.workspace}>
+
+        {/* Left Column: Risk Controls Form */}
         <div style={S.leftCol}>
           <div style={S.panel}>
-            <div style={S.panelHdr}><span style={S.panelTitle}>Risk Gate Parameters</span></div>
-            <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={S.panelHdr}>
+              <span style={S.panelTitle}>EXECUTION RISK GATES</span>
+              <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>PARAMETERS</span>
+            </div>
 
-              {/* Rule 1: Kill switch threshold */}
-              <div style={S.formGroup}>
-                <div style={S.formLabelRow}>
-                  <label style={S.formLabel}>Hard Daily Loss Limit (Kill Switch)</label>
-                  <span className="font-data" style={{ fontSize: '12px', color: 'var(--down)', fontWeight: 600 }}>
-                    −₹{Number(form.maxDailyLoss).toLocaleString('en-IN')}
+            <form onSubmit={handleSave} style={S.formBody}>
+              {/* Daily Loss Limit */}
+              <div style={S.fieldGroup}>
+                <div style={S.fieldHeader}>
+                  <label style={S.label}>Hard Daily Loss Limit (Kill Switch)</label>
+                  <span className="font-data" style={{ fontSize: '11px', color: 'var(--down)', fontWeight: 600 }}>
+                    -₹{Number(form.maxDailyLoss).toLocaleString('en-IN')}
                   </span>
                 </div>
-                <p style={S.formHelp}>
-                  If cumulative daily losses hit this number, all positions are squared off and trading is locked for the session.
-                </p>
-                <input
-                  type="number"
-                  className="form-input"
-                  value={form.maxDailyLoss}
-                  onChange={e => setForm(f => ({ ...f, maxDailyLoss: e.target.value }))}
-                  min="1000" step="500"
-                />
+                <div style={S.fieldDesc}>
+                  If today's losses reach this ceiling, the engine cancels all pending orders, squares off open positions, and locks the terminal.
+                </div>
+                <div style={S.inputWrap}>
+                  <span style={S.inputPrefix}>₹</span>
+                  <input
+                    type="number"
+                    className="form-input"
+                    style={{ paddingLeft: '22px' }}
+                    value={form.maxDailyLoss}
+                    onChange={e => setForm(f => ({ ...f, maxDailyLoss: e.target.value }))}
+                    min="1000"
+                    step="500"
+                    required
+                  />
+                </div>
+                <div style={S.presetsRow}>
+                  {[3000, 5000, 10000, 15000].map(val => (
+                    <button
+                      key={val}
+                      type="button"
+                      style={S.presetBtn}
+                      onClick={() => setForm(f => ({ ...f, maxDailyLoss: val }))}
+                    >
+                      ₹{val.toLocaleString('en-IN')}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* Rule 2: Capital risk per trade */}
-              <div style={S.formGroup}>
-                <div style={S.formLabelRow}>
-                  <label style={S.formLabel}>Max Capital Risk Per Trade</label>
-                  <span className="font-data" style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 600 }}>
-                    {form.maxCapitalRiskPct}% · ₹{(accountCapital * (form.maxCapitalRiskPct / 100)).toLocaleString('en-IN')}
+              {/* Capital Risk Per Trade */}
+              <div style={S.fieldGroup}>
+                <div style={S.fieldHeader}>
+                  <label style={S.label}>Max Capital Risk Per Trade</label>
+                  <span className="font-data" style={{ fontSize: '11px', color: 'var(--text-white)', fontWeight: 600 }}>
+                    {form.maxCapitalRiskPct}% (₹{(accountCapital * (form.maxCapitalRiskPct / 100)).toLocaleString('en-IN')})
                   </span>
                 </div>
-                <p style={S.formHelp}>
-                  Lot sizer caps maximum contracts so SL loss never exceeds this %. Prevents over-leveraging driven by overconfidence.
-                </p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={S.fieldDesc}>
+                  The automatic lot sizer caps contracts so stop-loss hit never exceeds this percentage of total account equity.
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <input
-                    type="range" min="0.5" max="3.0" step="0.25"
+                    type="range"
+                    min="0.5"
+                    max="3.0"
+                    step="0.25"
                     value={form.maxCapitalRiskPct}
                     onChange={e => setForm(f => ({ ...f, maxCapitalRiskPct: Number(e.target.value) }))}
-                    style={{ flex: 1, accentColor: 'var(--accent)' }}
+                    style={{ flex: 1, accentColor: '#3b82f6' }}
                   />
-                  <span className="font-data" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', minWidth: '30px' }}>{form.maxCapitalRiskPct}%</span>
+                  <span className="font-data" style={{ fontSize: '11.5px', minWidth: '32px', textAlign: 'right', fontWeight: 600 }}>
+                    {form.maxCapitalRiskPct}%
+                  </span>
                 </div>
               </div>
 
-              {/* Rule 3: Max concurrent trades */}
-              <div style={S.formGroup}>
-                <div style={S.formLabelRow}>
-                  <label style={S.formLabel}>Max Concurrent Open Positions</label>
-                  <span className="font-data" style={{ fontSize: '12px', color: 'var(--warn)', fontWeight: 600 }}>
-                    {form.maxOpenTrades} max
+              {/* Max Concurrent Positions */}
+              <div style={S.fieldGroup}>
+                <div style={S.fieldHeader}>
+                  <label style={S.label}>Max Concurrent Positions</label>
+                  <span className="font-data" style={{ fontSize: '11px', color: 'var(--text-white)', fontWeight: 600 }}>
+                    {form.maxOpenTrades} open
                   </span>
                 </div>
-                <p style={S.formHelp}>
-                  Caps the number of simultaneous positions. Prevents split attention and overtrading on volatile days.
-                </p>
+                <div style={S.fieldDesc}>
+                  Prevents over-trading and attention fragmentation. Rejects new order entries if limit is saturated.
+                </div>
                 <input
                   type="number"
                   className="form-input"
                   value={form.maxOpenTrades}
-                  onChange={e => setForm(f => ({ ...f, maxOpenTrades: e.target.value }))}
-                  min="1" max="5"
+                  onChange={e => setForm(f => ({ ...f, maxOpenTrades: Number(e.target.value) }))}
+                  min="1"
+                  max="6"
+                  required
                 />
               </div>
 
-              {/* Rule 4: Trailing SL toggle */}
-              <div style={S.toggleRow}>
-                <div>
-                  <div style={S.formLabel}>Auto-Trail to Break-Even</div>
-                  <p style={S.formHelp}>Moves SL to entry cost once 1:1.5 R:R is reached. Prevents profitable trades turning into losses.</p>
-                </div>
-                <label style={S.toggleWrap}>
-                  <input
-                    type="checkbox"
-                    checked={form.autoTrailingSl}
-                    onChange={e => setForm(f => ({ ...f, autoTrailingSl: e.target.checked }))}
-                    style={{ display: 'none' }}
-                  />
-                  <div style={{ ...S.toggle, ...(form.autoTrailingSl ? S.toggleOn : S.toggleOff) }}>
-                    <div style={{ ...S.toggleThumb, ...(form.autoTrailingSl ? S.thumbOn : {}) }} />
-                  </div>
-                </label>
-              </div>
-
+              {/* Save Button */}
               <button
+                type="submit"
                 className="btn btn-primary"
-                onClick={() => updateRiskSettings({ ...form, maxDailyLoss: Number(form.maxDailyLoss), maxOpenTrades: Number(form.maxOpenTrades) })}
-                style={{ width: '100%', padding: '9px', justifyContent: 'center' }}
+                style={{ justifyContent: 'center', padding: '7px', marginTop: '4px' }}
               >
-                <ShieldCheck size={14} />
-                Save & Apply Risk Gates
+                {saved ? '✓ Parameters Saved & Armed' : 'Save & Arm Risk Parameters'}
               </button>
-            </div>
+            </form>
           </div>
         </div>
 
-        {/* Right: Gauges + Circuit Breakers */}
+        {/* Right Column: Drawdown Monitor & Circuit Breakers */}
         <div style={S.rightCol}>
-          {/* Drawdown gauge */}
+
+          {/* Daily Drawdown Meter */}
           <div style={S.panel}>
             <div style={S.panelHdr}>
-              <span style={S.panelTitle}>Daily Loss Drawdown</span>
-              <span className="font-data" style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                Limit: ₹{riskRules.maxDailyLoss.toLocaleString('en-IN')}
+              <span style={S.panelTitle}>DAILY DRAWDOWN VS KILL-SWITCH LIMIT</span>
+              <span className="font-data" style={{ fontSize: '10px', color: drawnPct >= 80 ? 'var(--down)' : 'var(--text-secondary)' }}>
+                {drawnPct.toFixed(1)}% Consumed
               </span>
             </div>
-            <div style={{ padding: '12px 14px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '11px' }}>
-                <span style={{ color: 'var(--text-muted)' }}>₹0</span>
-                <span className="font-data" style={{ color: drawnPct > 60 ? 'var(--down)' : 'var(--text-secondary)', fontWeight: 600 }}>
-                  {drawnPct.toFixed(1)}% consumed
-                </span>
-                <span style={{ color: 'var(--down)' }}>₹{riskRules.maxDailyLoss.toLocaleString('en-IN')}</span>
+
+            <div style={{ padding: '12px' }}>
+              <div style={S.drawdownTrack}>
+                <div
+                  style={{
+                    ...S.drawdownFill,
+                    width: `${drawnPct}%`,
+                    background: drawnPct >= 80 ? 'var(--down)' : drawnPct >= 50 ? 'var(--warn)' : 'var(--up)'
+                  }}
+                />
+                {/* 50% Warning Line */}
+                <div style={S.halfMarker} />
               </div>
-              <div style={{ height: '10px', background: '#222', borderRadius: '5px', overflow: 'hidden', border: '1px solid var(--border-1)' }}>
-                <div style={{
-                  height: '100%',
-                  width: `${drawnPct}%`,
-                  background: drawnPct > 75 ? 'var(--down)' : drawnPct > 50 ? 'var(--warn)' : 'var(--up)',
-                  borderRadius: '5px',
-                  transition: 'width 0.4s ease',
-                }} />
+
+              <div style={S.drawdownLabels}>
+                <span className="font-data" style={{ fontSize: '10px', color: 'var(--text-muted)' }}>₹0</span>
+                <span className="font-data" style={{ fontSize: '10px', color: 'var(--warn)' }}>50% Caution (₹{(form.maxDailyLoss * 0.5).toLocaleString('en-IN')})</span>
+                <span className="font-data" style={{ fontSize: '10px', color: 'var(--down)' }}>-₹{Number(form.maxDailyLoss).toLocaleString('en-IN')} (Halt)</span>
               </div>
-              {drawnPct === 0 && (
-                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px' }}>
-                  No losses consumed today. Kill switch is armed at −₹{riskRules.maxDailyLoss.toLocaleString('en-IN')}.
-                </p>
-              )}
+
+              <div style={S.drawdownSummary}>
+                <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                  Today's Cumulative Losses:&nbsp;
+                  <strong className="font-data" style={{ color: currentLoss > 0 ? 'var(--down)' : 'var(--up)' }}>
+                    ₹{currentLoss.toFixed(2)}
+                  </strong>
+                </div>
+                <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
+                  Remaining risk room: <strong className="font-data" style={{ color: 'var(--text-primary)' }}>₹{Math.max(0, form.maxDailyLoss - currentLoss).toLocaleString('en-IN')}</strong>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Circuit Breakers */}
+          {/* Circuit Breakers List */}
           <div style={S.panel}>
             <div style={S.panelHdr}>
-              <span style={S.panelTitle}>Psychological Circuit Breakers</span>
-              <span style={S.tagOk}>All Active</span>
+              <span style={S.panelTitle}>SYSTEMATIC BEHAVIORAL CIRCUIT BREAKERS</span>
+              <span className="tag tag-up">ALL 5 ENFORCED</span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {rules.map((rule, i) => (
-                <div key={rule.id} style={{ ...S.ruleRow, borderBottom: i < rules.length - 1 ? '1px solid var(--border-1)' : 'none' }}>
-                  <CheckCircle size={14} style={{ color: 'var(--up)', flexShrink: 0, marginTop: '2px' }} />
-                  <div>
-                    <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '2px' }}>{rule.title}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4' }}>{rule.desc}</div>
+
+            <div style={S.circuitList}>
+              {circuitBreakers.map((cb, i) => (
+                <div key={i} style={S.circuitItem}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '3px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <CheckCircle2 size={13} style={{ color: 'var(--up)', flexShrink: 0 }} />
+                      <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-white)' }}>
+                        {cb.title}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '9px', fontWeight: 600, color: 'var(--up)' }}>ACTIVE</span>
+                  </div>
+                  <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', lineHeight: 1.4, paddingLeft: '19px' }}>
+                    {cb.desc}
                   </div>
                 </div>
               ))}
             </div>
           </div>
+
         </div>
+
       </div>
     </div>
   );
 };
 
 const S = {
-  root: { display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' },
-  panel: { background: 'var(--bg-panel)', border: '1px solid var(--border-1)', borderRadius: '4px', overflow: 'hidden' },
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    overflow: 'hidden',
+    userSelect: 'none',
+  },
+  toolbar: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '6px 12px',
+    background: 'var(--bg-panel-2)',
+    borderBottom: '1px solid var(--border-1)',
+    height: '38px',
+    flexShrink: 0,
+  },
+  toolLeft: { display: 'flex', alignItems: 'center', gap: '8px' },
+  pageTitle: { fontSize: '12px', fontWeight: 700, color: 'var(--text-white)' },
+
+  workspace: {
+    display: 'flex',
+    flex: 1,
+    overflow: 'hidden',
+    gap: '1px',
+    background: 'var(--border-1)',
+  },
+  leftCol: {
+    width: '380px',
+    background: 'var(--bg-base)',
+    display: 'flex',
+    flexDirection: 'column',
+    overflowY: 'auto',
+    flexShrink: 0,
+  },
+  rightCol: {
+    flex: 1,
+    background: 'var(--bg-base)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '1px',
+    overflowY: 'auto',
+  },
+  panel: {
+    background: 'var(--bg-panel)',
+    display: 'flex',
+    flexDirection: 'column',
+  },
   panelHdr: {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '7px 12px', background: 'var(--bg-panel-2)',
-    borderBottom: '1px solid var(--border-1)', height: '34px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '6px 10px',
+    background: 'var(--bg-panel-2)',
+    borderBottom: '1px solid var(--border-1)',
+    height: '30px',
   },
-  panelTitle: { fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' },
-
-  titleBar: {
-    display: 'flex', alignItems: 'center', gap: '12px',
-    padding: '10px 14px', background: 'var(--bg-panel)',
-    borderBottom: '1px solid var(--border-1)', flexShrink: 0,
+  panelTitle: {
+    fontSize: '9.5px',
+    fontWeight: 700,
+    color: 'var(--text-secondary)',
+    letterSpacing: '0.05em',
   },
-  titleLeft: { display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 },
-  pageTitle: { fontSize: '13px', fontWeight: 700, color: 'var(--text-white)' },
-  pageDesc: { fontSize: '11.5px', color: 'var(--text-muted)', lineHeight: '1.4', maxWidth: '600px' },
+  formBody: {
+    padding: '12px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+  fieldGroup: { display: 'flex', flexDirection: 'column', gap: '4px' },
+  fieldHeader: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  label: { fontSize: '10.5px', fontWeight: 600, color: 'var(--text-white)' },
+  fieldDesc: { fontSize: '10px', color: 'var(--text-muted)', lineHeight: 1.35, marginBottom: '2px' },
+  inputWrap: { position: 'relative', display: 'flex', alignItems: 'center' },
+  inputPrefix: {
+    position: 'absolute',
+    left: '8px',
+    fontSize: '11.5px',
+    color: 'var(--text-muted)',
+    fontFamily: 'var(--font-data)',
+  },
+  presetsRow: { display: 'flex', gap: '4px', marginTop: '4px' },
+  presetBtn: {
+    flex: 1,
+    padding: '3px 0',
+    background: 'var(--bg-panel-2)',
+    border: '1px solid var(--border-1)',
+    borderRadius: '2px',
+    color: 'var(--text-secondary)',
+    fontSize: '10px',
+    fontFamily: 'var(--font-data)',
+    cursor: 'pointer',
+  },
 
-  tag: { fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '3px', fontFamily: 'var(--font-data)' },
-  tagOk: { background: 'var(--up-bg)', color: 'var(--up)', border: '1px solid var(--up-border)' },
-  tagDanger: { background: 'var(--down-bg)', color: 'var(--down)', border: '1px solid var(--down-border)', animation: 'none' },
+  // Drawdown
+  drawdownTrack: {
+    height: '8px',
+    background: 'var(--bg-surface)',
+    border: '1px solid var(--border-1)',
+    borderRadius: '3px',
+    position: 'relative',
+    overflow: 'hidden',
+    marginBottom: '6px',
+  },
+  drawdownFill: {
+    height: '100%',
+    transition: 'width 0.4s ease',
+  },
+  halfMarker: {
+    position: 'absolute',
+    left: '50%',
+    top: 0,
+    bottom: 0,
+    width: '1px',
+    background: 'rgba(255, 255, 255, 0.2)',
+  },
+  drawdownLabels: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginBottom: '8px',
+  },
+  drawdownSummary: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '8px',
+    background: 'var(--bg-panel-2)',
+    border: '1px solid var(--border-1)',
+    borderRadius: '3px',
+  },
 
-  body: { display: 'grid', gridTemplateColumns: '400px 1fr', gap: '10px', padding: '10px', flex: 1, overflow: 'auto' },
-  leftCol: { display: 'flex', flexDirection: 'column', gap: '10px' },
-  rightCol: { display: 'flex', flexDirection: 'column', gap: '10px' },
-
-  formGroup: { display: 'flex', flexDirection: 'column', gap: '5px' },
-  formLabelRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  formLabel: { fontSize: '10.5px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' },
-  formHelp: { fontSize: '10.5px', color: 'var(--text-muted)', lineHeight: '1.4' },
-
-  toggleRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '10px', background: 'var(--bg-panel-2)', borderRadius: '4px', border: '1px solid var(--border-1)' },
-  toggleWrap: { cursor: 'pointer', flexShrink: 0 },
-  toggle: { width: '34px', height: '18px', borderRadius: '9px', padding: '2px', cursor: 'pointer', transition: 'background 200ms' },
-  toggleOn: { background: 'var(--up)' },
-  toggleOff: { background: '#333' },
-  toggleThumb: { width: '14px', height: '14px', borderRadius: '50%', background: '#fff', transition: 'transform 200ms' },
-  thumbOn: { transform: 'translateX(16px)' },
-
-  ruleRow: { display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '10px 12px' },
+  // Circuit List
+  circuitList: {
+    padding: '8px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+  },
+  circuitItem: {
+    padding: '8px',
+    background: 'var(--bg-panel-2)',
+    border: '1px solid var(--border-1)',
+    borderRadius: '3px',
+  },
 };

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTrading } from '../context/TradingContext';
-import { ShieldAlert, AlertTriangle } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, Zap, CheckCircle2 } from 'lucide-react';
 
 export const Header = () => {
   const {
@@ -19,7 +19,7 @@ export const Header = () => {
   const isMarketOpen = (() => {
     const h = now.getHours(), m = now.getMinutes();
     const mins = h * 60 + m;
-    return mins >= 555 && mins <= 915; // 9:15 – 15:15
+    return mins >= 555 && mins <= 915; // 9:15 – 15:15 IST
   })();
 
   const timeStr = now.toLocaleTimeString('en-IN', {
@@ -27,125 +27,150 @@ export const Header = () => {
   });
 
   const pnlPositive = totalNetPnl >= 0;
+  const pnlPct = ((totalNetPnl / accountCapital) * 100).toFixed(2);
 
   const toggleMode = () => {
     if (tradingMode === 'PAPER') {
       if (window.confirm('Switch to LIVE Upstox API execution? Real capital will be at risk.')) {
         setTradingMode('LIVE_UPSTOX');
-        showToast('Switched to Live Upstox execution', 'info');
+        showToast('Switched to Live Upstox API Execution', 'info');
       }
     } else {
       setTradingMode('PAPER');
-      showToast('Switched to Paper Trading simulator', 'info');
+      showToast('Switched to Paper Trading Simulator', 'info');
     }
   };
 
   return (
     <header style={S.header}>
-      {/* Left: Brand */}
+      {/* ── Brand & Connectivity ── */}
       <div style={S.left}>
         <div style={S.brand}>
-          <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
-            <rect width="20" height="20" rx="3" fill="#5c8df6" fillOpacity="0.15" />
-            <path d="M4 14 L8 8 L12 11 L16 5" stroke="#5c8df6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            <circle cx="16" cy="5" r="2" fill="#26a69a" />
-          </svg>
-          <span style={S.brandName}>NavsTrade</span>
-          <span style={S.brandSub}>F&O Terminal</span>
+          <div style={S.brandLogo}>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: '#38bdf8', letterSpacing: '-0.05em' }}>N</span>
+            <span style={{ fontSize: '11px', fontWeight: 800, color: '#10b981', letterSpacing: '-0.05em' }}>T</span>
+          </div>
+          <div>
+            <div style={S.brandTitle}>NAVSTRADE</div>
+            <div style={S.brandSub}>INSTITUTIONAL F&O TERMINAL</div>
+          </div>
         </div>
 
-        <div style={S.sep} />
+        <div style={S.divider} />
 
-        {/* Market status */}
-        <div style={S.chip}>
+        {/* Market Status */}
+        <div style={S.statusPill}>
           <span className="live-dot" style={isMarketOpen ? {} : { background: 'var(--down)' }} />
           <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>
-            NSE F&O · {isMarketOpen ? 'Market Open' : 'Market Closed'}
+            NSE F&O · {isMarketOpen ? 'Live' : 'Closed'}
           </span>
-          <span style={S.clockText} className="font-data">{timeStr} IST</span>
+          <span className="font-data" style={S.clock}>{timeStr} IST</span>
         </div>
 
-        {/* API mode chip */}
-        <div style={{ ...S.chip, gap: '6px', cursor: 'pointer' }} onClick={toggleMode} title="Toggle Paper / Live">
+        {/* Upstox API Pill */}
+        <button
+          type="button"
+          style={S.apiPill}
+          onClick={toggleMode}
+          title="Click to toggle Paper Simulation / Live API"
+        >
           <span style={{
-            width: 7, height: 7, borderRadius: '50%',
-            background: tradingMode === 'LIVE_UPSTOX' ? 'var(--down)' : 'var(--accent)',
-            display: 'inline-block'
+            width: 6, height: 6, borderRadius: '50%',
+            background: tradingMode === 'LIVE_UPSTOX' ? 'var(--down)' : '#38bdf8'
           }} />
-          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-            Upstox API:
-          </span>
-          <span style={{
-            fontSize: '11px', fontWeight: 600,
-            color: tradingMode === 'LIVE_UPSTOX' ? 'var(--down)' : 'var(--up)'
+          <span style={{ fontSize: '10.5px', color: 'var(--text-secondary)' }}>API:</span>
+          <span className="font-data" style={{
+            fontSize: '10.5px', fontWeight: 600,
+            color: tradingMode === 'LIVE_UPSTOX' ? 'var(--down)' : 'var(--text-white)'
           }}>
-            {tradingMode === 'LIVE_UPSTOX' ? 'LIVE' : 'PAPER SIM'}
+            {tradingMode === 'LIVE_UPSTOX' ? 'UPSTOX LIVE' : 'PAPER SIM'}
           </span>
-        </div>
+        </button>
       </div>
 
-      {/* Center: Financial telemetry */}
+      {/* ── Center Telemetry Strip ── */}
       <div style={S.center}>
-        <div style={S.metricGroup}>
-          <span style={S.metricLabel}>Capital</span>
-          <span style={S.metricVal} className="font-data">
+        <div style={S.telemetryItem}>
+          <span style={S.telemetryLabel}>Capital</span>
+          <span className="font-data" style={S.telemetryVal}>
             ₹{accountCapital.toLocaleString('en-IN')}
           </span>
         </div>
-        <div style={S.metaSep} />
-        <div style={S.metricGroup}>
-          <span style={S.metricLabel}>Margin Available</span>
-          <span style={S.metricVal} className="font-data">
+
+        <div style={S.telemetrySep} />
+
+        <div style={S.telemetryItem}>
+          <span style={S.telemetryLabel}>Margin Available</span>
+          <span className="font-data" style={S.telemetryVal}>
             ₹{marginAvailable.toLocaleString('en-IN')}
           </span>
         </div>
-        <div style={S.metaSep} />
-        <div style={S.metricGroup}>
-          <span style={S.metricLabel}>Day P&L (MTM)</span>
+
+        <div style={S.telemetrySep} />
+
+        <div style={S.telemetryItem}>
+          <span style={S.telemetryLabel}>Day MTM P&L</span>
           <span
             className="font-data"
             style={{
-              ...S.metricVal,
+              ...S.telemetryVal,
               color: pnlPositive ? 'var(--up)' : 'var(--down)',
-              fontWeight: 700
+              fontWeight: 600,
             }}
           >
             {pnlPositive ? '+' : ''}₹{totalNetPnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            <span style={{ fontSize: '10px', marginLeft: 4, opacity: 0.85 }}>
+              ({pnlPositive ? '+' : ''}{pnlPct}%)
+            </span>
           </span>
         </div>
-        <div style={S.metaSep} />
-        <div style={{ ...S.metricGroup, ...( riskRules.killSwitchActive ? S.killActive : {}) }}>
-          <span style={S.metricLabel}>
-            <ShieldAlert size={10} style={{ marginRight: 3, verticalAlign: 'middle' }} />
-            Kill Switch
+
+        <div style={S.telemetrySep} />
+
+        <div style={{
+          ...S.telemetryItem,
+          ...(riskRules.killSwitchActive ? S.telemetryKill : {})
+        }}>
+          <span style={S.telemetryLabel}>
+            <ShieldAlert size={9} style={{ marginRight: 3, verticalAlign: 'middle', color: riskRules.killSwitchActive ? 'var(--down)' : 'var(--text-muted)' }} />
+            Kill Switch Guard
           </span>
-          <span style={{
-            ...S.metricVal,
-            color: riskRules.killSwitchActive ? 'var(--down)' : 'var(--text-secondary)',
-            fontWeight: riskRules.killSwitchActive ? 700 : 400
-          }}>
-            {riskRules.killSwitchActive
-              ? 'TRIGGERED — LOCKED'
-              : `Armed · −₹${riskRules.maxDailyLoss.toLocaleString('en-IN')}`}
+          <span
+            className="font-data"
+            style={{
+              ...S.telemetryVal,
+              color: riskRules.killSwitchActive ? 'var(--down)' : 'var(--text-secondary)',
+              fontWeight: riskRules.killSwitchActive ? 700 : 500,
+            }}
+          >
+            {riskRules.killSwitchActive ? 'TRIPPED (TERMINAL LOCKED)' : `Armed · −₹${riskRules.maxDailyLoss.toLocaleString('en-IN')}`}
           </span>
         </div>
       </div>
 
-      {/* Right: Actions */}
+      {/* ── Right Actions ── */}
       <div style={S.right}>
         <button
           className="btn btn-ghost btn-sm"
-          style={{ fontSize: '11px' }}
+          style={{ fontSize: '10.5px' }}
           onClick={toggleMode}
         >
-          {tradingMode === 'PAPER' ? '⏵  Go Live' : '⏸  Back to Paper'}
+          {tradingMode === 'PAPER' ? '⏵ Go Live' : '⏸ Paper'}
         </button>
+
         <button
           className="btn btn-danger btn-sm"
-          style={{ fontWeight: 700, letterSpacing: '0.03em' }}
+          style={{
+            fontWeight: 600,
+            fontSize: '10.5px',
+            background: 'rgba(244, 63, 94, 0.08)',
+            borderColor: 'rgba(244, 63, 94, 0.35)',
+            color: '#fb7185'
+          }}
           onClick={() => setPanicModalOpen(true)}
+          title="Emergency square-off all active positions"
         >
-          <AlertTriangle size={12} />
+          <AlertTriangle size={11} />
           Square Off All
         </button>
       </div>
@@ -161,52 +186,97 @@ const S = {
     height: 'var(--header-h)',
     background: 'var(--bg-header)',
     borderBottom: '1px solid var(--border-1)',
-    padding: '0 14px',
+    padding: '0 12px',
     gap: '12px',
     zIndex: 100,
     flexShrink: 0,
+    userSelect: 'none',
   },
-  left: { display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 },
-  right: { display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 },
+  left: { display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 },
+  right: { display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 },
+  brand: { display: 'flex', alignItems: 'center', gap: '7px' },
+  brandLogo: {
+    width: 22, height: 22,
+    background: '#161d2a',
+    border: '1px solid #28354b',
+    borderRadius: '3px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  brandTitle: {
+    fontSize: '12px',
+    fontWeight: 700,
+    color: 'var(--text-white)',
+    letterSpacing: '0.04em',
+    lineHeight: 1.1,
+  },
+  brandSub: {
+    fontSize: '8px',
+    color: 'var(--text-muted)',
+    letterSpacing: '0.08em',
+    fontWeight: 600,
+  },
+  divider: { width: 1, height: 16, background: 'var(--border-1)', margin: '0 2px' },
+  statusPill: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '5px',
+    padding: '3px 7px',
+    background: 'var(--bg-panel)',
+    border: '1px solid var(--border-1)',
+    borderRadius: '3px',
+    height: '24px',
+  },
+  clock: { fontSize: '10.5px', color: 'var(--text-secondary)', marginLeft: '3px' },
+  apiPill: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '5px',
+    padding: '3px 8px',
+    background: 'var(--bg-panel)',
+    border: '1px solid var(--border-1)',
+    borderRadius: '3px',
+    height: '24px',
+    cursor: 'pointer',
+    color: 'inherit',
+    transition: 'border-color 120ms ease',
+  },
+
   center: {
     display: 'flex',
     alignItems: 'center',
-    gap: '0',
     flex: 1,
     justifyContent: 'center',
+    maxWidth: '680px',
     background: 'var(--bg-panel)',
     border: '1px solid var(--border-1)',
-    borderRadius: '4px',
-    height: '30px',
-    padding: '0 2px',
+    borderRadius: '3px',
+    height: '26px',
+    padding: '0 6px',
     overflow: 'hidden',
   },
-  brand: { display: 'flex', alignItems: 'center', gap: '7px' },
-  brandName: { fontWeight: 700, fontSize: '14px', color: 'var(--text-white)', letterSpacing: '-0.01em' },
-  brandSub: { fontSize: '10px', color: 'var(--text-muted)', fontWeight: 400 },
-  sep: { width: '1px', height: '18px', background: 'var(--border-1)', margin: '0 6px' },
-  chip: {
-    display: 'flex', alignItems: 'center', gap: '5px',
-    background: 'var(--bg-panel)',
-    border: '1px solid var(--border-1)',
-    borderRadius: '4px',
-    padding: '4px 9px',
-    height: '28px',
+  telemetryItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '0 10px',
+    height: '100%',
   },
-  clockText: { fontSize: '11px', color: 'var(--text-secondary)', marginLeft: '4px' },
-  metricGroup: {
-    display: 'flex', flexDirection: 'column', alignItems: 'center',
-    justifyContent: 'center', padding: '0 14px', height: '100%',
+  telemetryLabel: {
+    fontSize: '8.5px',
+    fontWeight: 600,
+    color: 'var(--text-muted)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
   },
-  metricLabel: {
-    fontSize: '9px', fontWeight: 600, color: 'var(--text-muted)',
-    textTransform: 'uppercase', letterSpacing: '0.06em', lineHeight: 1
+  telemetryVal: {
+    fontSize: '11px',
+    fontWeight: 500,
+    color: 'var(--text-primary)',
   },
-  metricVal: { fontSize: '12px', fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.6 },
-  metaSep: { width: '1px', height: '24px', background: 'var(--border-1)' },
-  killActive: {
-    background: 'rgba(239, 83, 80, 0.08)',
-    borderLeft: '2px solid var(--down)',
-    paddingLeft: '14px',
+  telemetrySep: { width: 1, height: 14, background: 'var(--border-1)' },
+  telemetryKill: {
+    background: 'rgba(244, 63, 94, 0.08)',
   },
 };
