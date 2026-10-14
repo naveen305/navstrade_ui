@@ -1,184 +1,103 @@
 import React from 'react';
 import { useTrading } from '../../context/TradingContext';
-import { AlertOctagon, X, AlertTriangle, ShieldX } from 'lucide-react';
+import { AlertTriangle, X } from 'lucide-react';
 
 export const PanicModal = () => {
-  const {
-    panicModalOpen,
-    setPanicModalOpen,
-    positions,
-    emergencySquareOffAll
-  } = useTrading();
-
+  const { panicModalOpen, setPanicModalOpen, positions, emergencySquareOffAll } = useTrading();
   if (!panicModalOpen) return null;
 
+  const totalPnl = positions.reduce((s, p) => s + p.pnl, 0);
+
   return (
-    <div className="modal-backdrop">
-      <div className="terminal-card panic-modal">
-        <div className="terminal-card-header panic-modal-header">
-          <div className="panic-header-left">
-            <AlertOctagon size={20} className="text-loss" />
-            <span className="panic-modal-title">EMERGENCY KILL-SWITCH: IMMEDIATE SQUARE OFF</span>
+    <div style={P.backdrop}>
+      <div style={P.modal}>
+        <div style={P.header}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <AlertTriangle size={16} style={{ color: 'var(--down)' }} />
+            <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-white)' }}>Emergency Square-Off</span>
           </div>
-          <button className="close-btn" onClick={() => setPanicModalOpen(false)}>
-            <X size={16} />
-          </button>
+          <button style={P.closeBtn} onClick={() => setPanicModalOpen(false)}><X size={14} /></button>
         </div>
 
-        <div className="terminal-card-body panic-modal-body">
-          <div className="panic-warning-banner">
-            <AlertTriangle size={24} className="text-loss" />
-            <div>
-              <p className="panic-warning-title">ARE YOU ABSOLUTELY SURE?</p>
-              <p className="panic-warning-sub">
-                This will trigger an <strong>immediate Market Exit</strong> for all {positions.length} open position(s)
-                and cancel all resting orders across Upstox API.
-              </p>
-            </div>
+        <div style={P.body}>
+          <div style={P.warnBox}>
+            <p style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: 600, marginBottom: '4px' }}>
+              Immediately close all {positions.length} open position(s)?
+            </p>
+            <p style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+              All positions will be exited at market price and all pending orders cancelled via Upstox API.
+            </p>
           </div>
 
-          <div className="panic-positions-list">
-            <span className="panic-list-title">POSITIONS TO BE TERMINATED:</span>
-            {positions.length === 0 ? (
-              <p className="text-muted text-xs">No active open positions found.</p>
-            ) : (
-              positions.map(p => (
-                <div key={p.id} className="panic-position-item">
-                  <span className="font-bold">{p.symbol}</span>
-                  <span className="mono">{p.qty > 0 ? `BUY ${p.qty}` : `SELL ${Math.abs(p.qty)}`}</span>
-                  <span className={`mono font-bold ${p.pnl >= 0 ? 'text-profit' : 'text-loss'}`}>
-                    {p.pnl >= 0 ? '+' : ''}₹{p.pnl.toLocaleString('en-IN')}
+          {positions.length > 0 && (
+            <div style={P.positionList}>
+              {positions.map(p => (
+                <div key={p.id} style={P.posRow}>
+                  <span style={{ fontWeight: 600, fontSize: '12px' }}>{p.symbol}</span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{Math.abs(p.qty)} qty</span>
+                  <span className="font-data" style={{ marginLeft: 'auto', fontSize: '12px', fontWeight: 700, color: p.pnl >= 0 ? 'var(--up)' : 'var(--down)' }}>
+                    {p.pnl >= 0 ? '+' : ''}₹{p.pnl.toFixed(2)}
                   </span>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+              <div style={{ ...P.posRow, borderTop: '1px solid var(--border-2)', marginTop: '4px', paddingTop: '8px' }}>
+                <span style={{ fontWeight: 700 }}>Total P&L on Exit</span>
+                <span className="font-data" style={{ marginLeft: 'auto', fontWeight: 800, fontSize: '13px', color: totalPnl >= 0 ? 'var(--up)' : 'var(--down)' }}>
+                  {totalPnl >= 0 ? '+' : ''}₹{totalPnl.toFixed(2)}
+                </span>
+              </div>
+            </div>
+          )}
 
-          <div className="panic-actions">
-            <button
-              className="btn btn-outline cancel-panic-btn"
-              onClick={() => setPanicModalOpen(false)}
-            >
-              CANCEL / ABORT
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '8px' }}>
+            <button className="btn btn-ghost" style={{ justifyContent: 'center', padding: '10px' }} onClick={() => setPanicModalOpen(false)}>
+              Cancel
             </button>
-            <button
-              className="btn btn-danger confirm-panic-btn"
-              onClick={emergencySquareOffAll}
-            >
-              <ShieldX size={16} />
-              <span>CONFIRM IMMEDIATE SQUARE-OFF</span>
+            <button className="btn btn-danger" style={{ justifyContent: 'center', padding: '10px', fontWeight: 700 }} onClick={emergencySquareOffAll}>
+              <AlertTriangle size={14} />
+              Confirm — Exit All Now
             </button>
           </div>
         </div>
       </div>
-
-      <style>{`
-        .panic-modal {
-          width: 520px;
-          max-width: 95vw;
-          border-color: var(--loss-red) !important;
-          box-shadow: 0 0 36px rgba(244, 63, 94, 0.45) !important;
-          animation: shake 0.3s ease-in-out;
-        }
-
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          20%, 60% { transform: translateX(-4px); }
-          40%, 80% { transform: translateX(4px); }
-        }
-
-        .panic-modal-header {
-          background: rgba(244, 63, 94, 0.15) !important;
-          border-bottom: 1px solid var(--loss-red) !important;
-        }
-
-        .panic-header-left {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .panic-modal-title {
-          font-size: 12px;
-          font-weight: 800;
-          color: #ff6b81;
-          letter-spacing: 0.05em;
-        }
-
-        .panic-modal-body {
-          display: flex;
-          flex-direction: column;
-          gap: 14px;
-        }
-
-        .panic-warning-banner {
-          display: flex;
-          align-items: flex-start;
-          gap: 12px;
-          padding: 12px;
-          background: rgba(244, 63, 94, 0.12);
-          border: 1px solid rgba(244, 63, 94, 0.3);
-          border-radius: 6px;
-        }
-
-        .panic-warning-title {
-          font-size: 13px;
-          font-weight: 800;
-          color: #ffffff;
-        }
-
-        .panic-warning-sub {
-          font-size: 11px;
-          color: var(--text-secondary);
-          margin-top: 2px;
-          line-height: 1.35;
-        }
-
-        .panic-positions-list {
-          background: var(--bg-surface-2);
-          border: 1px solid var(--border-subtle);
-          border-radius: 6px;
-          padding: 10px;
-          max-height: 140px;
-          overflow-y: auto;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .panic-list-title {
-          font-size: 9.5px;
-          font-weight: 800;
-          color: var(--text-muted);
-          letter-spacing: 0.05em;
-        }
-
-        .panic-position-item {
-          display: flex;
-          justify-content: space-between;
-          font-size: 11.5px;
-          padding: 4px 6px;
-          background: var(--bg-surface-3);
-          border-radius: 4px;
-        }
-
-        .panic-actions {
-          display: grid;
-          grid-template-columns: 1fr 1.6fr;
-          gap: 8px;
-          margin-top: 4px;
-        }
-
-        .confirm-panic-btn {
-          padding: 10px;
-          font-size: 12.5px;
-          font-weight: 800;
-        }
-
-        .cancel-panic-btn {
-          font-weight: 600;
-        }
-      `}</style>
     </div>
   );
+};
+
+const P = {
+  backdrop: {
+    position: 'fixed', inset: 0,
+    background: 'rgba(0,0,0,0.75)',
+    backdropFilter: 'blur(4px)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    zIndex: 9000,
+  },
+  modal: {
+    width: '420px',
+    background: 'var(--bg-panel)',
+    border: '1px solid var(--down)',
+    borderRadius: '6px',
+    overflow: 'hidden',
+    boxShadow: '0 16px 48px rgba(0,0,0,0.75)',
+  },
+  header: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '10px 14px', background: 'rgba(239,83,80,0.08)',
+    borderBottom: '1px solid rgba(239,83,80,0.2)',
+  },
+  closeBtn: { background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex' },
+  body: { padding: '14px', display: 'flex', flexDirection: 'column', gap: '12px' },
+  warnBox: {
+    padding: '10px 12px',
+    background: 'rgba(239,83,80,0.06)',
+    border: '1px solid rgba(239,83,80,0.2)',
+    borderRadius: '4px',
+  },
+  positionList: {
+    background: '#161616', border: '1px solid var(--border-1)',
+    borderRadius: '4px', padding: '8px 10px',
+    display: 'flex', flexDirection: 'column', gap: '6px',
+    maxHeight: '160px', overflow: 'auto',
+  },
+  posRow: { display: 'flex', alignItems: 'center', gap: '10px' },
 };

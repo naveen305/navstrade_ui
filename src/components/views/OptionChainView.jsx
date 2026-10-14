@@ -1,354 +1,196 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useTrading } from '../../context/TradingContext';
-import { Layers, Eye, Plus, ShoppingCart, HelpCircle } from 'lucide-react';
+import { ShoppingCart, Info } from 'lucide-react';
 
 export const OptionChainView = () => {
-  const {
-    optionChain,
-    selectedSymbol,
-    openOrderTicket
-  } = useTrading();
+  const { optionChain, selectedSymbol, openOrderTicket } = useTrading();
 
-  const [greekFilter, setGreekFilter] = useState('ALL'); // 'ALL' | 'DELTA_THETA' | 'OI_ONLY'
+  const totalCallOI = optionChain.reduce((a, r) => a + r.ce.oi, 0);
+  const totalPutOI  = optionChain.reduce((a, r) => a + r.pe.oi, 0);
+  const pcr = (totalPutOI / totalCallOI).toFixed(2);
+  const maxOI = Math.max(...optionChain.flatMap(r => [r.ce.oi, r.pe.oi]));
 
-  // Calculate total Call and Put Open Interest
-  const totalCallOI = optionChain.reduce((acc, row) => acc + row.ce.oi, 0);
-  const totalPutOI = optionChain.reduce((acc, row) => acc + row.pe.oi, 0);
-  const pcrRatio = (totalPutOI / totalCallOI).toFixed(2);
+  const makeOrder = (row, side) => ({
+    symbol: `${selectedSymbol.symbol} ${row.strike} ${side}`,
+    action: 'BUY',
+    price: side === 'CE' ? row.ce.ltp : row.pe.ltp,
+    sl: +(side === 'CE' ? row.ce.ltp * 0.82 : row.pe.ltp * 0.82).toFixed(1),
+    target: +(side === 'CE' ? row.ce.ltp * 1.35 : row.pe.ltp * 1.35).toFixed(1),
+    lotSize: selectedSymbol.lotSize,
+    qty: selectedSymbol.lotSize,
+    strategy: `${side} ${row.strike} Selection`
+  });
 
   return (
-    <div className="option-chain-container">
-      {/* Header bar with PCR and Max Pain info */}
-      <div className="terminal-card chain-summary-bar">
-        <div className="chain-info-left">
-          <div className="chain-title-row">
-            <Layers size={18} className="text-cyan" />
-            <span className="chain-title">{selectedSymbol.symbol} REAL-TIME OPTION CHAIN</span>
-            <span className="badge badge-purple">EXPIRY: CURRENT WEEK</span>
-          </div>
-          <span className="text-secondary text-sm">
-            Spot Price: <strong className="mono text-cyan">₹{selectedSymbol.price}</strong> | Strike Interval: 50 pts
+    <div style={S.root}>
+      {/* Summary bar */}
+      <div style={S.summaryBar}>
+        <div style={S.summaryLeft}>
+          <span style={S.chainTitle}>{selectedSymbol.symbol} · Option Chain</span>
+          <span className="tag tag-info" style={{ marginLeft: 8 }}>Current Week Expiry</span>
+          <span style={S.spotInfo} className="font-data">
+            Spot&nbsp;<strong style={{ color: 'var(--text-white)' }}>₹{selectedSymbol.price?.toLocaleString('en-IN')}</strong>
           </span>
         </div>
-
-        <div className="chain-metrics-right">
-          <div className="chain-metric-card">
-            <span className="cm-label">OVERALL PCR (PUT/CALL)</span>
-            <span className={`cm-val mono font-bold ${Number(pcrRatio) >= 1 ? 'text-profit' : 'text-loss'}`}>
-              {pcrRatio} ({Number(pcrRatio) >= 1 ? 'Bullish Support' : 'Call Resistance'})
+        <div style={S.summaryMetrics}>
+          <div style={S.smCard}>
+            <span style={S.smLabel}>PCR</span>
+            <span className="font-data" style={{ fontWeight: 700, fontSize: '13px', color: Number(pcr) >= 1 ? 'var(--up)' : 'var(--down)' }}>
+              {pcr}
+            </span>
+            <span style={S.smSub}>{Number(pcr) >= 1 ? 'Bullish bias' : 'Call resistance'}</span>
+          </div>
+          <div style={S.smCard}>
+            <span style={S.smLabel}>Max Pain</span>
+            <span className="font-data" style={{ fontWeight: 700, fontSize: '13px', color: 'var(--warn)' }}>
+              {selectedSymbol.maxPain}
+            </span>
+            <span style={S.smSub}>Expiry magnet</span>
+          </div>
+          <div style={S.smCard}>
+            <span style={S.smLabel}>Total Call OI vs Put OI</span>
+            <span className="font-data" style={{ fontWeight: 600, fontSize: '12px' }}>
+              <span style={{ color: 'var(--up)' }}>{(totalCallOI/100000).toFixed(1)}L</span>
+              <span style={{ color: 'var(--text-muted)', margin: '0 4px' }}>vs</span>
+              <span style={{ color: 'var(--down)' }}>{(totalPutOI/100000).toFixed(1)}L</span>
             </span>
           </div>
-
-          <div className="chain-metric-card">
-            <span className="cm-label">MAX PAIN STRIKE</span>
-            <span className="cm-val mono font-bold text-amber">
-              {selectedSymbol.maxPain} (Expiry Magnet)
+          <div style={S.smCard}>
+            <span style={S.smLabel}>IV Rank</span>
+            <span className="font-data" style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>
+              {selectedSymbol.iv}%
             </span>
-          </div>
-
-          <div className="chain-metric-card">
-            <span className="cm-label">TOTAL CALL OI vs PUT OI</span>
-            <span className="cm-val mono">
-              {(totalCallOI / 100000).toFixed(1)}L <span className="text-muted">vs</span> {(totalPutOI / 100000).toFixed(1)}L
-            </span>
+            <span style={S.smSub}>30-day percentile: 42nd</span>
           </div>
         </div>
       </div>
 
-      {/* Main Strike Ladder Table */}
-      <div className="terminal-card chain-table-card">
-        <div className="chain-table-scroll">
-          <table className="terminal-table chain-table">
-            <thead>
-              <tr>
-                {/* CALLS (CE) HEADER */}
-                <th colSpan="6" className="ce-header text-center">CALL OPTIONS (CE) - BULLISH</th>
-                {/* STRIKE */}
-                <th className="strike-header text-center">STRIKE</th>
-                {/* PUTS (PE) HEADER */}
-                <th colSpan="6" className="pe-header text-center">PUT OPTIONS (PE) - BEARISH</th>
-              </tr>
-              <tr className="sub-headers">
-                <th>OI (Lakhs)</th>
-                <th>IV %</th>
-                <th>DELTA (Δ)</th>
-                <th>THETA (Θ)</th>
-                <th>CHG</th>
-                <th>LTP (₹)</th>
+      {/* Main Chain Table */}
+      <div style={{ flex: 1, overflow: 'auto', background: 'var(--bg-panel)' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11.5px' }}>
+          <thead style={{ position: 'sticky', top: 0, zIndex: 5 }}>
+            {/* Section header row */}
+            <tr>
+              <th colSpan={6} style={{ ...S.th, background: 'rgba(38,166,154,0.08)', color: 'var(--up)', textAlign: 'center', padding: '5px', fontSize: '10px', borderRight: '2px solid var(--border-2)' }}>
+                CALL OPTIONS (CE)
+              </th>
+              <th style={{ ...S.th, background: '#1e1e1e', textAlign: 'center', color: 'var(--text-secondary)', padding: '5px', minWidth: '80px' }}>
+                STRIKE
+              </th>
+              <th colSpan={6} style={{ ...S.th, background: 'rgba(239,83,80,0.08)', color: 'var(--down)', textAlign: 'center', padding: '5px', fontSize: '10px', borderLeft: '2px solid var(--border-2)' }}>
+                PUT OPTIONS (PE)
+              </th>
+            </tr>
+            {/* Column labels */}
+            <tr>
+              {['OI (L)', 'Δ Delta', 'Θ Theta', 'IV%', 'Chg', 'LTP ₹'].map(h => (
+                <th key={h} style={{ ...S.th, textAlign: 'right', borderRight: h === 'LTP ₹' ? '2px solid var(--border-2)' : undefined }}>{h}</th>
+              ))}
+              <th style={{ ...S.th, textAlign: 'center', background: '#1e1e1e', color: 'var(--text-secondary)' }}>Price</th>
+              {['LTP ₹', 'Chg', 'IV%', 'Θ Theta', 'Δ Delta', 'OI (L)'].map((h, i) => (
+                <th key={h+i} style={{ ...S.th, textAlign: i === 0 ? 'left' : 'right', borderLeft: i === 0 ? '2px solid var(--border-2)' : undefined }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
 
-                <th className="strike-sub text-center">PRICE</th>
+          <tbody>
+            {optionChain.map(row => {
+              const isATM = row.strike === 25150;
+              const itmCE = row.strike < selectedSymbol.price;
+              const itmPE = row.strike > selectedSymbol.price;
+              const rowBg = isATM ? 'rgba(92,141,246,0.06)' : 'transparent';
 
-                <th>LTP (₹)</th>
-                <th>CHG</th>
-                <th>DELTA (Δ)</th>
-                <th>THETA (Θ)</th>
-                <th>IV %</th>
-                <th>OI (Lakhs)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {optionChain.map((row) => {
-                const isATM = row.strike === 25150;
-                const isITM_CE = row.strike < selectedSymbol.price;
-                const isITM_PE = row.strike > selectedSymbol.price;
-
-                return (
-                  <tr
-                    key={row.strike}
-                    className={`chain-row ${isATM ? 'atm-strike-row' : ''}`}
+              return (
+                <tr key={row.strike} style={{ background: rowBg, borderTop: isATM ? '1px solid rgba(92,141,246,0.3)' : undefined, borderBottom: isATM ? '1px solid rgba(92,141,246,0.3)' : undefined }}>
+                  {/* CE Side */}
+                  <td style={{ ...S.td, textAlign: 'right', background: itmCE ? 'rgba(38,166,154,0.04)' : undefined }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                      <div style={{ width: `${(row.ce.oi/maxOI)*56}px`, height: '3px', background: 'var(--up)', borderRadius: '1px', opacity: 0.6 }} />
+                      <span className="font-data">{(row.ce.oi/100000).toFixed(1)}</span>
+                    </div>
+                  </td>
+                  <td className="font-data" style={{ ...S.td, textAlign: 'right', color: 'var(--up)', background: itmCE ? 'rgba(38,166,154,0.04)' : undefined }}>{row.ce.delta}</td>
+                  <td className="font-data" style={{ ...S.td, textAlign: 'right', color: 'var(--warn)', background: itmCE ? 'rgba(38,166,154,0.04)' : undefined }}>₹{row.ce.theta}</td>
+                  <td className="font-data" style={{ ...S.td, textAlign: 'right', color: 'var(--text-secondary)', background: itmCE ? 'rgba(38,166,154,0.04)' : undefined }}>{row.ce.iv}%</td>
+                  <td className="font-data" style={{ ...S.td, textAlign: 'right', color: row.ce.change >= 0 ? 'var(--up)' : 'var(--down)', background: itmCE ? 'rgba(38,166,154,0.04)' : undefined }}>
+                    {row.ce.change >= 0 ? '+' : ''}{row.ce.change?.toFixed(2)}
+                  </td>
+                  <td
+                    className="font-data"
+                    style={{ ...S.td, textAlign: 'right', fontWeight: 700, color: 'var(--text-white)', cursor: 'pointer', borderRight: '2px solid var(--border-2)', background: itmCE ? 'rgba(38,166,154,0.04)' : undefined }}
+                    onClick={() => openOrderTicket(makeOrder(row, 'CE'))}
+                    title="Click to open Buy CE order"
                   >
-                    {/* CALLS DATA */}
-                    <td className={`mono ${isITM_CE ? 'itm-cell' : ''}`}>
-                      <div className="oi-cell">
-                        <span>{(row.ce.oi / 100000).toFixed(2)}</span>
-                        <div
-                          className="oi-bar oi-bar-ce"
-                          style={{ width: `${Math.min(100, (row.ce.oi / 7000000) * 100)}%` }}
-                        />
-                      </div>
-                    </td>
-                    <td className={`mono ${isITM_CE ? 'itm-cell' : ''}`}>{row.ce.iv}%</td>
-                    <td className={`mono text-profit ${isITM_CE ? 'itm-cell' : ''}`}>{row.ce.delta}</td>
-                    <td className={`mono text-amber ${isITM_CE ? 'itm-cell' : ''}`}>₹{row.ce.theta}</td>
-                    <td className={`mono ${row.ce.change >= 0 ? 'text-profit' : 'text-loss'} ${isITM_CE ? 'itm-cell' : ''}`}>
-                      {row.ce.change >= 0 ? '+' : ''}{row.ce.change}
-                    </td>
-                    <td className={`mono font-bold clickable-price ce-price ${isITM_CE ? 'itm-cell' : ''}`}
-                      onClick={() => openOrderTicket({
-                        symbol: `${selectedSymbol.symbol} ${row.strike} CE`,
-                        action: 'BUY',
-                        price: row.ce.ltp,
-                        sl: +(row.ce.ltp * 0.82).toFixed(1),
-                        target: +(row.ce.ltp * 1.35).toFixed(1),
-                        lotSize: selectedSymbol.lotSize,
-                        qty: selectedSymbol.lotSize,
-                        strategy: 'Option Chain Call Selection'
-                      })}
-                      title="Click to launch Buy Call order ticket"
-                    >
-                      ₹{row.ce.ltp.toFixed(2)}
-                      <ShoppingCart size={11} className="inline-cart-icon" />
-                    </td>
+                    {row.ce.ltp?.toFixed(2)}&nbsp;<ShoppingCart size={9} style={{ opacity: 0.5 }} />
+                  </td>
 
-                    {/* STRIKE PILLAR */}
-                    <td className={`mono text-center strike-cell ${isATM ? 'atm-strike-badge' : ''}`}>
-                      {row.strike}
-                      {isATM && <span className="atm-pill">ATM</span>}
-                    </td>
+                  {/* Strike */}
+                  <td style={{ ...S.td, textAlign: 'center', fontWeight: 700, fontSize: '12px', background: '#1e1e1e', color: isATM ? 'var(--accent)' : 'var(--text-primary)', position: 'relative' }} className="font-data">
+                    {row.strike}
+                    {isATM && <span style={S.atmPill}>ATM</span>}
+                  </td>
 
-                    {/* PUTS DATA */}
-                    <td className={`mono font-bold clickable-price pe-price ${isITM_PE ? 'itm-cell' : ''}`}
-                      onClick={() => openOrderTicket({
-                        symbol: `${selectedSymbol.symbol} ${row.strike} PE`,
-                        action: 'BUY',
-                        price: row.pe.ltp,
-                        sl: +(row.pe.ltp * 0.82).toFixed(1),
-                        target: +(row.pe.ltp * 1.35).toFixed(1),
-                        lotSize: selectedSymbol.lotSize,
-                        qty: selectedSymbol.lotSize,
-                        strategy: 'Option Chain Put Selection'
-                      })}
-                      title="Click to launch Buy Put order ticket"
-                    >
-                      ₹{row.pe.ltp.toFixed(2)}
-                      <ShoppingCart size={11} className="inline-cart-icon" />
-                    </td>
-                    <td className={`mono ${row.pe.change >= 0 ? 'text-profit' : 'text-loss'} ${isITM_PE ? 'itm-cell' : ''}`}>
-                      {row.pe.change >= 0 ? '+' : ''}{row.pe.change}
-                    </td>
-                    <td className={`mono text-loss ${isITM_PE ? 'itm-cell' : ''}`}>{row.pe.delta}</td>
-                    <td className={`mono text-amber ${isITM_PE ? 'itm-cell' : ''}`}>₹{row.pe.theta}</td>
-                    <td className={`mono ${isITM_PE ? 'itm-cell' : ''}`}>{row.pe.iv}%</td>
-                    <td className={`mono ${isITM_PE ? 'itm-cell' : ''}`}>
-                      <div className="oi-cell">
-                        <span>{(row.pe.oi / 100000).toFixed(2)}</span>
-                        <div
-                          className="oi-bar oi-bar-pe"
-                          style={{ width: `${Math.min(100, (row.pe.oi / 7000000) * 100)}%` }}
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                  {/* PE Side */}
+                  <td
+                    className="font-data"
+                    style={{ ...S.td, textAlign: 'left', fontWeight: 700, color: 'var(--text-white)', cursor: 'pointer', borderLeft: '2px solid var(--border-2)', background: itmPE ? 'rgba(239,83,80,0.04)' : undefined }}
+                    onClick={() => openOrderTicket(makeOrder(row, 'PE'))}
+                    title="Click to open Buy PE order"
+                  >
+                    {row.pe.ltp?.toFixed(2)}&nbsp;<ShoppingCart size={9} style={{ opacity: 0.5 }} />
+                  </td>
+                  <td className="font-data" style={{ ...S.td, textAlign: 'right', color: row.pe.change >= 0 ? 'var(--up)' : 'var(--down)', background: itmPE ? 'rgba(239,83,80,0.04)' : undefined }}>
+                    {row.pe.change >= 0 ? '+' : ''}{row.pe.change?.toFixed(2)}
+                  </td>
+                  <td className="font-data" style={{ ...S.td, textAlign: 'right', color: 'var(--text-secondary)', background: itmPE ? 'rgba(239,83,80,0.04)' : undefined }}>{row.pe.iv}%</td>
+                  <td className="font-data" style={{ ...S.td, textAlign: 'right', color: 'var(--warn)', background: itmPE ? 'rgba(239,83,80,0.04)' : undefined }}>₹{row.pe.theta}</td>
+                  <td className="font-data" style={{ ...S.td, textAlign: 'right', color: 'var(--down)', background: itmPE ? 'rgba(239,83,80,0.04)' : undefined }}>{row.pe.delta}</td>
+                  <td style={{ ...S.td, textAlign: 'right', background: itmPE ? 'rgba(239,83,80,0.04)' : undefined }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                      <span className="font-data">{(row.pe.oi/100000).toFixed(1)}</span>
+                      <div style={{ width: `${(row.pe.oi/maxOI)*56}px`, height: '3px', background: 'var(--down)', borderRadius: '1px', opacity: 0.6 }} />
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
-
-      <style>{`
-        .option-chain-container {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          padding: 12px;
-          height: calc(100vh - 56px);
-          overflow-y: auto;
-        }
-
-        .chain-summary-bar {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 12px 16px;
-        }
-
-        .chain-title-row {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          margin-bottom: 4px;
-        }
-
-        .chain-title {
-          font-size: 14px;
-          font-weight: 800;
-          letter-spacing: 0.05em;
-          color: #ffffff;
-        }
-
-        .chain-metrics-right {
-          display: flex;
-          gap: 12px;
-        }
-
-        .chain-metric-card {
-          background: var(--bg-surface-2);
-          border: 1px solid var(--border-subtle);
-          border-radius: 6px;
-          padding: 6px 12px;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .cm-label {
-          font-size: 9.5px;
-          font-weight: 700;
-          color: var(--text-muted);
-        }
-
-        .cm-val {
-          font-size: 12.5px;
-        }
-
-        .chain-table-card {
-          overflow: hidden;
-        }
-
-        .chain-table-scroll {
-          max-height: calc(100vh - 190px);
-          overflow-y: auto;
-        }
-
-        .chain-table {
-          font-size: 11.5px;
-        }
-
-        .ce-header {
-          background: rgba(16, 185, 129, 0.15) !important;
-          color: var(--profit-green) !important;
-          border-right: 1px solid var(--border-medium);
-        }
-
-        .pe-header {
-          background: rgba(244, 63, 94, 0.15) !important;
-          color: var(--loss-red) !important;
-          border-left: 1px solid var(--border-medium);
-        }
-
-        .strike-header {
-          background: var(--bg-surface-3) !important;
-          color: var(--neon-cyan) !important;
-          min-width: 90px;
-        }
-
-        .sub-headers th {
-          font-size: 9.5px;
-          background: var(--bg-surface-2);
-        }
-
-        .strike-cell {
-          background: var(--bg-surface-2);
-          font-weight: 800;
-          font-size: 13px;
-          color: var(--text-highlight);
-          border-left: 1px solid var(--border-medium);
-          border-right: 1px solid var(--border-medium);
-        }
-
-        .atm-strike-row {
-          background: rgba(0, 240, 255, 0.08) !important;
-          border-top: 1px solid var(--neon-cyan);
-          border-bottom: 1px solid var(--neon-cyan);
-        }
-
-        .atm-strike-badge {
-          background: var(--neon-cyan) !important;
-          color: #000 !important;
-          position: relative;
-        }
-
-        .atm-pill {
-          display: inline-block;
-          font-size: 8.5px;
-          font-weight: 900;
-          background: #000;
-          color: var(--neon-cyan);
-          padding: 1px 4px;
-          border-radius: 3px;
-          margin-left: 4px;
-        }
-
-        .itm-cell {
-          background: rgba(255, 255, 255, 0.02);
-        }
-
-        .clickable-price {
-          cursor: pointer;
-          transition: background var(--trans-fast);
-          padding: 6px 10px;
-          border-radius: 4px;
-        }
-
-        .ce-price:hover {
-          background: var(--profit-green-bg) !important;
-          color: var(--profit-green);
-        }
-
-        .pe-price:hover {
-          background: var(--loss-red-bg) !important;
-          color: var(--loss-red);
-        }
-
-        .inline-cart-icon {
-          margin-left: 5px;
-          opacity: 0.6;
-        }
-
-        .oi-cell {
-          position: relative;
-          display: flex;
-          align-items: center;
-          height: 18px;
-        }
-
-        .oi-bar {
-          position: absolute;
-          left: 0;
-          bottom: 0;
-          height: 3px;
-          border-radius: 2px;
-          opacity: 0.7;
-        }
-
-        .oi-bar-ce {
-          background: var(--profit-green);
-        }
-
-        .oi-bar-pe {
-          background: var(--loss-red);
-        }
-      `}</style>
     </div>
   );
+};
+
+const S = {
+  root: { display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--bg-base)' },
+  summaryBar: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '8px 14px', background: 'var(--bg-panel)',
+    borderBottom: '1px solid var(--border-1)', flexShrink: 0, gap: '12px',
+  },
+  summaryLeft: { display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 },
+  chainTitle: { fontSize: '13px', fontWeight: 700, color: 'var(--text-white)' },
+  spotInfo: { fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '10px' },
+  summaryMetrics: { display: 'flex', gap: '1px', background: 'var(--border-1)', borderRadius: '4px', overflow: 'hidden' },
+  smCard: {
+    display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
+    padding: '5px 12px', background: 'var(--bg-panel-2)',
+    minWidth: '120px',
+  },
+  smLabel: { fontSize: '9px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' },
+  smSub: { fontSize: '9px', color: 'var(--text-muted)' },
+  th: {
+    background: 'var(--bg-panel-2)', color: 'var(--text-muted)',
+    fontSize: '10px', fontWeight: 600, letterSpacing: '0.04em',
+    padding: '5px 8px', borderBottom: '1px solid var(--border-2)',
+    whiteSpace: 'nowrap',
+  },
+  td: { padding: '5px 8px', borderBottom: '1px solid var(--border-1)', whiteSpace: 'nowrap' },
+  atmPill: {
+    position: 'absolute', top: '50%', left: '50%',
+    transform: 'translate(18px, -50%)',
+    fontSize: '8px', fontWeight: 700,
+    background: 'var(--accent)', color: '#fff',
+    padding: '1px 4px', borderRadius: '2px',
+  },
 };

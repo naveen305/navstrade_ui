@@ -1,363 +1,212 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTrading } from '../context/TradingContext';
-import {
-  ShieldAlert,
-  Zap,
-  Activity,
-  AlertTriangle,
-  Lock,
-  Unlock,
-  Radio,
-  Clock,
-  Wallet,
-  TrendingUp,
-  TrendingDown
-} from 'lucide-react';
+import { ShieldAlert, AlertTriangle } from 'lucide-react';
 
 export const Header = () => {
   const {
-    tradingMode,
-    setTradingMode,
-    accountCapital,
-    marginAvailable,
-    totalNetPnl,
-    riskRules,
-    setPanicModalOpen,
-    showToast
+    tradingMode, setTradingMode,
+    accountCapital, marginAvailable,
+    totalNetPnl, riskRules,
+    setPanicModalOpen, showToast
   } = useTrading();
 
-  const [timeStr, setTimeStr] = useState('');
-
+  const [now, setNow] = useState(new Date());
   useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      setTimeStr(now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }));
-    };
-    updateTime();
-    const timer = setInterval(updateTime, 1000);
-    return () => clearInterval(timer);
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
   }, []);
 
-  const handleModeToggle = () => {
+  const isMarketOpen = (() => {
+    const h = now.getHours(), m = now.getMinutes();
+    const mins = h * 60 + m;
+    return mins >= 555 && mins <= 915; // 9:15 – 15:15
+  })();
+
+  const timeStr = now.toLocaleTimeString('en-IN', {
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+  });
+
+  const pnlPositive = totalNetPnl >= 0;
+
+  const toggleMode = () => {
     if (tradingMode === 'PAPER') {
-      const confirmSwitch = window.confirm(
-        '⚠️ LIVE EXECUTION WARNING:\nYou are switching to REAL Upstox API execution. Real money will be at risk. Ensure your Upstox Access Token is configured.\n\nProceed to LIVE Mode?'
-      );
-      if (confirmSwitch) {
+      if (window.confirm('Switch to LIVE Upstox API execution? Real capital will be at risk.')) {
         setTradingMode('LIVE_UPSTOX');
-        showToast('🟢 Switched to LIVE Upstox API Execution', 'info');
+        showToast('Switched to Live Upstox execution', 'info');
       }
     } else {
       setTradingMode('PAPER');
-      showToast('🛡️ Switched back to SAFE Paper Trading Simulator', 'info');
+      showToast('Switched to Paper Trading simulator', 'info');
     }
   };
 
-  const isProfitable = totalNetPnl >= 0;
-
   return (
-    <header className="terminal-header">
-      {/* Brand & Market Status */}
-      <div className="header-left">
-        <div className="brand-logo">
-          <div className="logo-icon">
-            <Zap size={18} className="logo-bolt" />
-          </div>
-          <div className="brand-text">
-            <span className="brand-title">NAVS<span className="brand-cyan">TRADE</span></span>
-            <span className="brand-badge">INSTITUTIONAL v2.4</span>
-          </div>
+    <header style={S.header}>
+      {/* Left: Brand */}
+      <div style={S.left}>
+        <div style={S.brand}>
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+            <rect width="20" height="20" rx="3" fill="#5c8df6" fillOpacity="0.15" />
+            <path d="M4 14 L8 8 L12 11 L16 5" stroke="#5c8df6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="16" cy="5" r="2" fill="#26a69a" />
+          </svg>
+          <span style={S.brandName}>NavsTrade</span>
+          <span style={S.brandSub}>F&O Terminal</span>
         </div>
 
-        <div className="header-divider" />
+        <div style={S.sep} />
 
-        <div className="market-status-chip">
-          <span className="pulse-indicator pulse-green" />
-          <span className="market-text">NSE F&O LIVE</span>
-          <span className="market-time mono"><Clock size={11} /> {timeStr} IST</span>
+        {/* Market status */}
+        <div style={S.chip}>
+          <span className="live-dot" style={isMarketOpen ? {} : { background: 'var(--down)' }} />
+          <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>
+            NSE F&O · {isMarketOpen ? 'Market Open' : 'Market Closed'}
+          </span>
+          <span style={S.clockText} className="font-data">{timeStr} IST</span>
         </div>
 
-        <div className="upstox-api-chip">
-          <Radio size={12} className={tradingMode === 'LIVE_UPSTOX' ? 'text-profit' : 'text-cyan'} />
-          <span>UPSTOX API: <strong>{tradingMode === 'LIVE_UPSTOX' ? 'CONNECTED' : 'SANDBOX SIMULATOR'}</strong></span>
-        </div>
-      </div>
-
-      {/* Financial Telemetry (MTM, Margin, Kill Switch) */}
-      <div className="header-center">
-        {/* Available Margin */}
-        <div className="telemetry-item">
-          <span className="telemetry-label"><Wallet size={12} /> MARGIN AVAILABLE</span>
-          <span className="telemetry-val mono">₹{marginAvailable.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-        </div>
-
-        {/* Net Today's P&L */}
-        <div className={`telemetry-item mtm-card ${isProfitable ? 'mtm-profit' : 'mtm-loss'}`}>
-          <div className="mtm-label-row">
-            <span className="telemetry-label">DAY NET MTM (P&L)</span>
-            {isProfitable ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-          </div>
-          <span className={`telemetry-val mtm-number mono ${isProfitable ? 'text-profit' : 'text-loss'}`}>
-            {isProfitable ? '+' : ''}₹{totalNetPnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+        {/* API mode chip */}
+        <div style={{ ...S.chip, gap: '6px', cursor: 'pointer' }} onClick={toggleMode} title="Toggle Paper / Live">
+          <span style={{
+            width: 7, height: 7, borderRadius: '50%',
+            background: tradingMode === 'LIVE_UPSTOX' ? 'var(--down)' : 'var(--accent)',
+            display: 'inline-block'
+          }} />
+          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+            Upstox API:
+          </span>
+          <span style={{
+            fontSize: '11px', fontWeight: 600,
+            color: tradingMode === 'LIVE_UPSTOX' ? 'var(--down)' : 'var(--up)'
+          }}>
+            {tradingMode === 'LIVE_UPSTOX' ? 'LIVE' : 'PAPER SIM'}
           </span>
         </div>
+      </div>
 
-        {/* Anti-Emotion Kill Switch Indicator */}
-        <div className={`telemetry-item killswitch-chip ${riskRules.killSwitchActive ? 'killswitch-tripped' : 'killswitch-armed'}`}>
-          <div className="killswitch-header">
-            <ShieldAlert size={13} />
-            <span>DISCIPLINE GUARD</span>
-          </div>
-          <div className="killswitch-body mono">
-            {riskRules.killSwitchActive ? (
-              <span className="text-loss font-bold">LOCKED: LIMIT HIT</span>
-            ) : (
-              <span>MAX LOSS: ₹{riskRules.maxDailyLoss.toLocaleString('en-IN')}</span>
-            )}
-          </div>
+      {/* Center: Financial telemetry */}
+      <div style={S.center}>
+        <div style={S.metricGroup}>
+          <span style={S.metricLabel}>Capital</span>
+          <span style={S.metricVal} className="font-data">
+            ₹{accountCapital.toLocaleString('en-IN')}
+          </span>
+        </div>
+        <div style={S.metaSep} />
+        <div style={S.metricGroup}>
+          <span style={S.metricLabel}>Margin Available</span>
+          <span style={S.metricVal} className="font-data">
+            ₹{marginAvailable.toLocaleString('en-IN')}
+          </span>
+        </div>
+        <div style={S.metaSep} />
+        <div style={S.metricGroup}>
+          <span style={S.metricLabel}>Day P&L (MTM)</span>
+          <span
+            className="font-data"
+            style={{
+              ...S.metricVal,
+              color: pnlPositive ? 'var(--up)' : 'var(--down)',
+              fontWeight: 700
+            }}
+          >
+            {pnlPositive ? '+' : ''}₹{totalNetPnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+          </span>
+        </div>
+        <div style={S.metaSep} />
+        <div style={{ ...S.metricGroup, ...( riskRules.killSwitchActive ? S.killActive : {}) }}>
+          <span style={S.metricLabel}>
+            <ShieldAlert size={10} style={{ marginRight: 3, verticalAlign: 'middle' }} />
+            Kill Switch
+          </span>
+          <span style={{
+            ...S.metricVal,
+            color: riskRules.killSwitchActive ? 'var(--down)' : 'var(--text-secondary)',
+            fontWeight: riskRules.killSwitchActive ? 700 : 400
+          }}>
+            {riskRules.killSwitchActive
+              ? 'TRIGGERED — LOCKED'
+              : `Armed · −₹${riskRules.maxDailyLoss.toLocaleString('en-IN')}`}
+          </span>
         </div>
       </div>
 
-      {/* Actions & Panic Controls */}
-      <div className="header-right">
-        {/* Paper vs Live Mode Toggle */}
+      {/* Right: Actions */}
+      <div style={S.right}>
         <button
-          className={`btn mode-toggle-btn ${tradingMode === 'LIVE_UPSTOX' ? 'mode-live' : 'mode-paper'}`}
-          onClick={handleModeToggle}
-          title="Toggle between Paper Trading Simulator and Live Upstox API Execution"
+          className="btn btn-ghost btn-sm"
+          style={{ fontSize: '11px' }}
+          onClick={toggleMode}
         >
-          {tradingMode === 'LIVE_UPSTOX' ? (
-            <>
-              <Unlock size={13} />
-              <span>LIVE UPSTOX</span>
-            </>
-          ) : (
-            <>
-              <Lock size={13} />
-              <span>PAPER TRADING</span>
-            </>
-          )}
+          {tradingMode === 'PAPER' ? '⏵  Go Live' : '⏸  Back to Paper'}
         </button>
-
-        {/* BIG PANIC EMERGENCY SQUARE-OFF BUTTON */}
         <button
-          className="btn btn-danger panic-button"
+          className="btn btn-danger btn-sm"
+          style={{ fontWeight: 700, letterSpacing: '0.03em' }}
           onClick={() => setPanicModalOpen(true)}
-          title="Emergency Stop: Closes all open positions and locks new entries immediately"
         >
-          <AlertTriangle size={14} />
-          <span>SQUARE OFF ALL</span>
+          <AlertTriangle size={12} />
+          Square Off All
         </button>
       </div>
-
-      <style>{`
-        .terminal-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 8px 16px;
-          background: var(--bg-surface-1);
-          border-bottom: 1px solid var(--border-medium);
-          position: sticky;
-          top: 0;
-          z-index: 100;
-          height: 56px;
-        }
-
-        .header-left, .header-center, .header-right {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .brand-logo {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          cursor: pointer;
-        }
-
-        .logo-icon {
-          width: 32px;
-          height: 32px;
-          border-radius: 6px;
-          background: linear-gradient(135deg, rgba(0, 240, 255, 0.2) 0%, rgba(0, 114, 255, 0.4) 100%);
-          border: 1px solid var(--border-cyan);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 0 12px rgba(0, 240, 255, 0.2);
-        }
-
-        .logo-bolt {
-          color: var(--neon-cyan);
-        }
-
-        .brand-title {
-          font-weight: 800;
-          font-size: 15px;
-          letter-spacing: 0.08em;
-          color: #ffffff;
-        }
-
-        .brand-cyan {
-          color: var(--neon-cyan);
-        }
-
-        .brand-badge {
-          display: block;
-          font-size: 8.5px;
-          font-weight: 700;
-          letter-spacing: 0.1em;
-          color: var(--text-muted);
-          font-family: var(--font-mono);
-        }
-
-        .header-divider {
-          width: 1px;
-          height: 24px;
-          background: var(--border-subtle);
-        }
-
-        .market-status-chip, .upstox-api-chip {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          background: var(--bg-surface-2);
-          padding: 4px 10px;
-          border-radius: 4px;
-          border: 1px solid var(--border-subtle);
-          font-size: 11px;
-          color: var(--text-secondary);
-        }
-
-        .market-time {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          color: var(--neon-cyan);
-          margin-left: 4px;
-        }
-
-        .telemetry-item {
-          display: flex;
-          flex-direction: column;
-          padding: 4px 12px;
-          background: var(--bg-surface-2);
-          border: 1px solid var(--border-subtle);
-          border-radius: 6px;
-        }
-
-        .telemetry-label {
-          font-size: 9.5px;
-          font-weight: 700;
-          color: var(--text-muted);
-          letter-spacing: 0.05em;
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
-
-        .telemetry-val {
-          font-size: 13px;
-          font-weight: 700;
-          color: var(--text-highlight);
-        }
-
-        .mtm-card {
-          min-width: 150px;
-          border-color: rgba(255, 255, 255, 0.15);
-        }
-
-        .mtm-profit {
-          background: linear-gradient(180deg, rgba(16, 185, 129, 0.12) 0%, rgba(13, 18, 29, 0.6) 100%);
-          border-color: rgba(16, 185, 129, 0.35);
-        }
-
-        .mtm-loss {
-          background: linear-gradient(180deg, rgba(244, 63, 94, 0.12) 0%, rgba(13, 18, 29, 0.6) 100%);
-          border-color: rgba(244, 63, 94, 0.35);
-        }
-
-        .mtm-label-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-
-        .mtm-number {
-          font-size: 15px;
-        }
-
-        .killswitch-chip {
-          border-radius: 6px;
-          min-width: 140px;
-        }
-
-        .killswitch-armed {
-          background: rgba(0, 240, 255, 0.04);
-          border-color: rgba(0, 240, 255, 0.25);
-        }
-
-        .killswitch-armed .killswitch-header {
-          color: var(--neon-cyan);
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          font-size: 9.5px;
-          font-weight: 700;
-        }
-
-        .killswitch-tripped {
-          background: rgba(244, 63, 94, 0.18);
-          border-color: var(--loss-red);
-          animation: livePulse 1.5s infinite;
-        }
-
-        .killswitch-tripped .killswitch-header {
-          color: var(--loss-red);
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          font-size: 9.5px;
-          font-weight: 800;
-        }
-
-        .mode-toggle-btn {
-          font-size: 11px;
-          padding: 6px 12px;
-          border-radius: 6px;
-          font-weight: 700;
-        }
-
-        .mode-paper {
-          background: rgba(16, 185, 129, 0.12);
-          border-color: rgba(16, 185, 129, 0.3);
-          color: var(--profit-green);
-        }
-
-        .mode-paper:hover {
-          background: rgba(16, 185, 129, 0.2);
-        }
-
-        .mode-live {
-          background: rgba(244, 63, 94, 0.2);
-          border-color: var(--loss-red);
-          color: #ff6b81;
-          box-shadow: 0 0 10px rgba(244, 63, 94, 0.3);
-        }
-
-        .panic-button {
-          font-weight: 700;
-          letter-spacing: 0.05em;
-          animation: subtlePulse 3s infinite ease-in-out;
-        }
-
-        @keyframes subtlePulse {
-          0%, 100% { box-shadow: 0 0 10px rgba(244, 63, 94, 0.3); }
-          50% { box-shadow: 0 0 18px rgba(244, 63, 94, 0.6); }
-        }
-      `}</style>
     </header>
   );
+};
+
+const S = {
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    height: 'var(--header-h)',
+    background: 'var(--bg-header)',
+    borderBottom: '1px solid var(--border-1)',
+    padding: '0 14px',
+    gap: '12px',
+    zIndex: 100,
+    flexShrink: 0,
+  },
+  left: { display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 },
+  right: { display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 },
+  center: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0',
+    flex: 1,
+    justifyContent: 'center',
+    background: 'var(--bg-panel)',
+    border: '1px solid var(--border-1)',
+    borderRadius: '4px',
+    height: '30px',
+    padding: '0 2px',
+    overflow: 'hidden',
+  },
+  brand: { display: 'flex', alignItems: 'center', gap: '7px' },
+  brandName: { fontWeight: 700, fontSize: '14px', color: 'var(--text-white)', letterSpacing: '-0.01em' },
+  brandSub: { fontSize: '10px', color: 'var(--text-muted)', fontWeight: 400 },
+  sep: { width: '1px', height: '18px', background: 'var(--border-1)', margin: '0 6px' },
+  chip: {
+    display: 'flex', alignItems: 'center', gap: '5px',
+    background: 'var(--bg-panel)',
+    border: '1px solid var(--border-1)',
+    borderRadius: '4px',
+    padding: '4px 9px',
+    height: '28px',
+  },
+  clockText: { fontSize: '11px', color: 'var(--text-secondary)', marginLeft: '4px' },
+  metricGroup: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
+    justifyContent: 'center', padding: '0 14px', height: '100%',
+  },
+  metricLabel: {
+    fontSize: '9px', fontWeight: 600, color: 'var(--text-muted)',
+    textTransform: 'uppercase', letterSpacing: '0.06em', lineHeight: 1
+  },
+  metricVal: { fontSize: '12px', fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.6 },
+  metaSep: { width: '1px', height: '24px', background: 'var(--border-1)' },
+  killActive: {
+    background: 'rgba(239, 83, 80, 0.08)',
+    borderLeft: '2px solid var(--down)',
+    paddingLeft: '14px',
+  },
 };
