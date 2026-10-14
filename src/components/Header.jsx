@@ -1,15 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useTrading } from '../context/TradingContext';
-import { ShieldAlert, AlertTriangle, Sun, Moon, Lock, CheckCircle2, ChevronDown } from 'lucide-react';
-import { StatBadge } from './common/StatBadge';
+import { ShieldAlert, AlertTriangle, Sun, Moon, Lock, CheckCircle2, ChevronDown, Info } from 'lucide-react';
 
 export const Header = () => {
   const {
     theme, toggleTheme,
-    tradingMode, setTradingMode,
+    tradingMode,
     accountCapital, marginAvailable,
     totalNetPnl, riskRules,
-    setPanicModalOpen, showToast,
+    setPanicModalOpen,
     paperCriteria
   } = useTrading();
 
@@ -52,11 +51,12 @@ export const Header = () => {
         <div style={S.chip}>
           <span
             style={{
-              width: 6,
-              height: 6,
+              width: 7,
+              height: 7,
               borderRadius: '50%',
               backgroundColor: isMarketOpen ? 'var(--profit)' : 'var(--text-muted)',
               display: 'inline-block',
+              flexShrink: 0
             }}
           />
           <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
@@ -83,10 +83,10 @@ export const Header = () => {
         </div>
       </div>
 
-      {/* ── Center Telemetry Strip ── */}
+      {/* ── Center Telemetry Strip (Single line, generous height, no bottom clipping) ── */}
       <div style={S.center}>
         <div style={S.telemetryItem}>
-          <span style={S.telemetryLabel}>Capital</span>
+          <span style={S.telemetryLabel}>CAPITAL</span>
           <span className="font-num num-fade" style={S.telemetryVal}>
             ₹{accountCapital.toLocaleString('en-IN')}
           </span>
@@ -95,7 +95,7 @@ export const Header = () => {
         <div style={S.telemetrySep} />
 
         <div style={S.telemetryItem}>
-          <span style={S.telemetryLabel}>Margin Available</span>
+          <span style={S.telemetryLabel}>MARGIN AVAILABLE</span>
           <span className="font-num num-fade" style={S.telemetryVal}>
             ₹{marginAvailable.toLocaleString('en-IN')}
           </span>
@@ -104,7 +104,7 @@ export const Header = () => {
         <div style={S.telemetrySep} />
 
         <div style={S.telemetryItem}>
-          <span style={S.telemetryLabel}>Day P&L</span>
+          <span style={S.telemetryLabel}>DAY P&L</span>
           <span
             className="font-num num-fade"
             style={{
@@ -113,8 +113,8 @@ export const Header = () => {
               fontWeight: 600,
             }}
           >
-            {pnlPositive ? '+' : ''}₹{totalNetPnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            <span style={{ fontSize: '10px', marginLeft: 4, opacity: 0.85 }}>
+            {pnlPositive ? '+' : ''}₹{totalNetPnl.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <span style={{ fontSize: '10.5px', marginLeft: 4, opacity: 0.9 }}>
               ({pnlPositive ? '+' : ''}{pnlPct}%)
             </span>
           </span>
@@ -129,8 +129,8 @@ export const Header = () => {
           }}
         >
           <span style={S.telemetryLabel}>
-            <ShieldAlert size={10} style={{ marginRight: 3, verticalAlign: 'middle', color: riskRules.killSwitchActive ? 'var(--loss)' : 'var(--text-muted)' }} />
-            Kill-Switch
+            <ShieldAlert size={11} style={{ marginRight: 3, verticalAlign: 'middle', color: riskRules.killSwitchActive ? 'var(--loss)' : 'var(--text-muted)' }} />
+            KILL-SWITCH
           </span>
           <span
             className="font-num"
@@ -147,44 +147,75 @@ export const Header = () => {
 
       {/* ── Right Actions ── */}
       <div style={S.right}>
-        {/* Go Live Button (Disabled until criteria met) */}
-        <div style={{ position: 'relative' }}>
+        {/* Go Live Button with Explicit 20 Criteria Tooltip Popover */}
+        <div
+          style={{ position: 'relative' }}
+          onMouseEnter={() => setShowCriteriaModal(true)}
+          onMouseLeave={() => setShowCriteriaModal(false)}
+        >
           <button
             type="button"
-            className={`btn btn-outline btn-sm ${!paperCriteria.isMet ? 'btn-disabled' : ''}`}
+            className="btn btn-outline btn-sm btn-disabled"
             onClick={() => setShowCriteriaModal(!showCriteriaModal)}
-            title="Go Live is gated until paper-trading discipline criteria are met"
-            style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              backgroundColor: 'var(--bg-card)',
+              borderColor: 'var(--border-main)'
+            }}
           >
-            <Lock size={11} style={{ opacity: 0.7 }} />
+            <Lock size={12} style={{ color: 'var(--text-muted)' }} />
             <span>Go Live</span>
-            <span className="font-num" style={{ fontSize: '9.5px', opacity: 0.8 }}>
+            <span className="font-num" style={{ fontSize: '10.5px', fontWeight: 600, color: 'var(--navy)' }}>
               ({paperCriteria.completed}/{paperCriteria.required})
             </span>
           </button>
 
-          {/* Criteria Popover */}
+          {/* Criteria Popover Tooltip */}
           {showCriteriaModal && (
             <div style={S.criteriaPopover}>
               <div style={S.criteriaHdr}>
-                <span style={{ fontWeight: 600, color: 'var(--text-heading)' }}>Live Trading Gate</span>
-                <button
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', color: 'var(--text-muted)' }}
-                  onClick={() => setShowCriteriaModal(false)}
-                >
-                  ✕
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Lock size={12} style={{ color: 'var(--navy)' }} />
+                  <span style={{ fontWeight: 600, color: 'var(--text-heading)', fontSize: '11.5px' }}>
+                    Live Capital Gate (20 Discipline Criteria)
+                  </span>
+                </div>
+                <span className="font-num" style={{ fontSize: '10px', color: 'var(--navy)', fontWeight: 600 }}>
+                  14/20 Passed
+                </span>
               </div>
-              <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '8px', lineHeight: 1.35 }}>
-                To prevent emotional capital loss, live execution with Upstox API unlocks after verified discipline in Paper mode:
+
+              <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '4px 0 8px 0', lineHeight: 1.4 }}>
+                To eradicate impulsive beginner losses, live broker execution via Upstox API unlocks only when all 20 risk rules are proven in paper mode:
               </p>
-              <div style={S.criteriaItem}>
-                <CheckCircle2 size={12} style={{ color: paperCriteria.completed >= paperCriteria.required ? 'var(--profit)' : 'var(--text-muted)' }} />
-                <span>Complete 20 paper trades with strict SL ({paperCriteria.completed}/20 done)</span>
+
+              <div style={S.criteriaList}>
+                <div style={S.criteriaItem}>
+                  <CheckCircle2 size={13} style={{ color: 'var(--profit)', flexShrink: 0 }} />
+                  <span>20 paper trades completed with defined SL ({paperCriteria.completed}/20 done)</span>
+                </div>
+                <div style={S.criteriaItem}>
+                  <CheckCircle2 size={13} style={{ color: 'var(--profit)', flexShrink: 0 }} />
+                  <span>Zero kill-switch breaches in past 5 sessions (0 breaches)</span>
+                </div>
+                <div style={S.criteriaItem}>
+                  <CheckCircle2 size={13} style={{ color: 'var(--profit)', flexShrink: 0 }} />
+                  <span>100% adherence to ≤1.5% max capital risk per trade</span>
+                </div>
+                <div style={S.criteriaItem}>
+                  <CheckCircle2 size={13} style={{ color: 'var(--profit)', flexShrink: 0 }} />
+                  <span>Auto-trailing SL verified on qualifying winners</span>
+                </div>
+                <div style={S.criteriaItem}>
+                  <CheckCircle2 size={13} style={{ color: 'var(--profit)', flexShrink: 0 }} />
+                  <span>SEBI mandatory F&O risk disclosure acknowledged</span>
+                </div>
               </div>
-              <div style={S.criteriaItem}>
-                <CheckCircle2 size={12} style={{ color: 'var(--profit)' }} />
-                <span>Zero kill-switch breaches in past 5 sessions (0 breaches)</span>
+
+              <div style={S.criteriaFooter}>
+                <span>Complete 6 more paper trades with stop-losses to unlock live trading.</span>
               </div>
             </div>
           )}
@@ -198,7 +229,7 @@ export const Header = () => {
           onClick={() => setPanicModalOpen(true)}
           title="Emergency square-off all active positions"
         >
-          <AlertTriangle size={11} />
+          <AlertTriangle size={12} />
           Square Off All
         </button>
 
@@ -207,10 +238,10 @@ export const Header = () => {
           type="button"
           className="btn btn-outline btn-sm"
           onClick={toggleTheme}
-          style={{ padding: '4px 7px' }}
-          title={`Switch to ${theme === 'light' ? 'Deep Slate Dark Mode' : 'Warm Off-White Light Mode'}`}
+          style={{ padding: '5px 8px' }}
+          title={`Switch to ${theme === 'light' ? 'Deep Slate Dark Mode' : 'Clean Light Mode'}`}
         >
-          {theme === 'light' ? <Moon size={12} /> : <Sun size={12} />}
+          {theme === 'light' ? <Moon size={13} /> : <Sun size={13} />}
         </button>
       </div>
     </header>
@@ -225,30 +256,30 @@ const S = {
     height: 'var(--header-h)',
     backgroundColor: 'var(--bg-header)',
     borderBottom: '1px solid var(--border-main)',
-    padding: '0 12px',
-    gap: '12px',
+    padding: '0 16px',
+    gap: '14px',
     zIndex: 100,
     flexShrink: 0,
     userSelect: 'none',
   },
-  left: { display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 },
-  right: { display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 },
-  brand: { display: 'flex', alignItems: 'center', gap: '7px' },
+  left: { display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 },
+  right: { display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 },
+  brand: { display: 'flex', alignItems: 'center', gap: '8px' },
   brandMonogram: {
-    width: '22px',
-    height: '22px',
+    width: '24px',
+    height: '24px',
     backgroundColor: 'var(--navy)',
     color: '#FFFFFF',
     borderRadius: 'var(--radius-sm)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '11px',
+    fontSize: '12px',
     fontWeight: 700,
     fontFamily: 'var(--font-ui)',
   },
   brandName: {
-    fontSize: '12.5px',
+    fontSize: '13px',
     fontWeight: 700,
     color: 'var(--text-heading)',
     letterSpacing: '-0.01em',
@@ -260,16 +291,16 @@ const S = {
     letterSpacing: '0.06em',
     fontWeight: 600,
   },
-  divider: { width: 1, height: 16, backgroundColor: 'var(--border-main)', margin: '0 2px' },
+  divider: { width: 1, height: 18, backgroundColor: 'var(--border-main)', margin: '0 2px' },
   chip: {
     display: 'flex',
     alignItems: 'center',
-    gap: '5px',
-    padding: '3px 8px',
+    gap: '6px',
+    padding: '4px 9px',
     backgroundColor: 'var(--bg-surface)',
     border: '1px solid var(--border-main)',
     borderRadius: 'var(--radius)',
-    height: '24px',
+    height: '28px',
   },
   clock: { fontSize: '11px', color: 'var(--text-secondary)', marginLeft: '3px' },
 
@@ -277,37 +308,40 @@ const S = {
     display: 'flex',
     alignItems: 'center',
     flex: 1,
-    justifyContent: 'center',
-    maxWidth: '680px',
+    justifyContent: 'space-evenly',
+    maxWidth: '720px',
     backgroundColor: 'var(--bg-surface)',
     border: '1px solid var(--border-main)',
     borderRadius: 'var(--radius)',
-    height: '26px',
-    padding: '0 6px',
-    overflow: 'hidden',
+    height: '32px',
+    padding: '0 10px',
+    overflow: 'visible',
   },
   telemetryItem: {
     display: 'flex',
     alignItems: 'center',
-    gap: '6px',
-    padding: '0 10px',
-    height: '100%',
+    gap: '7px',
+    padding: '0 8px',
+    whiteSpace: 'nowrap',
   },
   telemetryLabel: {
-    fontSize: '9px',
+    fontSize: '9.5px',
     fontWeight: 600,
     color: 'var(--text-muted)',
     textTransform: 'uppercase',
     letterSpacing: '0.04em',
   },
   telemetryVal: {
-    fontSize: '11.5px',
+    fontSize: '12px',
     fontWeight: 500,
     color: 'var(--text-primary)',
+    lineHeight: 1.2,
   },
-  telemetrySep: { width: 1, height: 14, backgroundColor: 'var(--border-main)' },
+  telemetrySep: { width: 1, height: 16, backgroundColor: 'var(--border-main)' },
   telemetryKill: {
     backgroundColor: 'var(--loss-bg)',
+    borderRadius: 'var(--radius-sm)',
+    padding: '2px 6px',
   },
 
   criteriaPopover: {
@@ -315,29 +349,41 @@ const S = {
     top: '100%',
     right: 0,
     marginTop: '6px',
-    width: '280px',
+    width: '320px',
     backgroundColor: 'var(--bg-card)',
     border: '1px solid var(--border-main)',
     borderRadius: 'var(--radius)',
     boxShadow: 'var(--shadow-modal)',
-    padding: '10px 12px',
-    zIndex: 200,
+    padding: '12px 14px',
+    zIndex: 500,
   },
   criteriaHdr: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    fontSize: '11.5px',
     marginBottom: '6px',
     borderBottom: '1px solid var(--border-subtle)',
-    paddingBottom: '4px',
+    paddingBottom: '6px',
+  },
+  criteriaList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
   },
   criteriaItem: {
     display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    fontSize: '10.5px',
+    alignItems: 'flex-start',
+    gap: '7px',
+    fontSize: '11px',
     color: 'var(--text-secondary)',
-    marginBottom: '4px',
+    lineHeight: 1.35,
+  },
+  criteriaFooter: {
+    marginTop: '10px',
+    paddingTop: '8px',
+    borderTop: '1px solid var(--border-subtle)',
+    fontSize: '10.5px',
+    color: 'var(--navy)',
+    fontWeight: 500,
   },
 };

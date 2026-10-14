@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTrading } from '../../context/TradingContext';
-import { X, ShieldCheck, AlertCircle, CheckCircle2, Lock } from 'lucide-react';
+import { X, ShieldCheck, AlertCircle, CheckCircle2, Lock, Tag, PenTool } from 'lucide-react';
 
 export const OrderTicketModal = () => {
   const {
@@ -20,17 +20,22 @@ export const OrderTicketModal = () => {
   const [target, setTarget] = useState(orderModalData.target || +(orderModalData.price * 1.30).toFixed(1));
   const [lots, setLots] = useState(1);
   const [trailing, setTrailing] = useState(true);
+  const [reason, setReason] = useState(orderModalData.reason || '15m ORB Breakout with institutional volume surge');
 
   const lotSize = orderModalData.lotSize || 25;
-  const maxRiskRupees = +(accountCapital * (riskRules.maxCapitalRiskPct / 100)).toFixed(0);
+  const maxRiskRupees = +(accountCapital * (riskRules.maxCapitalRiskPct / 100)).toFixed(0); // ₹7,500
 
-  // Per share risk
-  const riskPerShare = Math.max(0, action === 'BUY' ? price - sl : sl - price);
-  const profitPerShare = Math.max(0, action === 'BUY' ? target - price : price - target);
+  // Per share & per lot risk
+  const riskPerShare = Math.max(0.05, action === 'BUY' ? price - sl : sl - price);
+  const profitPerShare = Math.max(0.05, action === 'BUY' ? target - price : price - target);
+  const riskPerLot = riskPerShare * lotSize;
+
+  // Actual dynamic calculation of max safe lots
+  const maxSafeLots = Math.max(1, Math.floor(maxRiskRupees / riskPerLot));
 
   // Total risk calculations
   const totalQty = lots * lotSize;
-  const totalRiskRupees = +(riskPerShare * totalQty).toFixed(0);
+  const totalRiskRupees = +(riskPerLot * lots).toFixed(0);
   const totalRiskPct = +((totalRiskRupees / accountCapital) * 100).toFixed(2);
   const totalProfitRupees = +(profitPerShare * totalQty).toFixed(0);
   const rrRatio = riskPerShare > 0 ? (profitPerShare / riskPerShare).toFixed(2) : '0.00';
@@ -42,8 +47,9 @@ export const OrderTicketModal = () => {
 
   const isOverCapitalLimit = totalRiskRupees > maxRiskRupees;
   const isKillSwitchActive = Boolean(riskRules.killSwitchActive);
+  const hasReason = reason.trim().length >= 4;
 
-  const canSubmit = hasValidSl && !isOverCapitalLimit && !isKillSwitchActive;
+  const canSubmit = hasValidSl && !isOverCapitalLimit && !isKillSwitchActive && hasReason;
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -58,9 +64,20 @@ export const OrderTicketModal = () => {
       lotSize,
       qty: totalQty,
       trailingSlActive: trailing,
-      strategy: orderModalData.strategy || 'Pre-set Defined Risk'
+      strategy: orderModalData.strategy || 'Pre-set Defined Risk',
+      reason: reason.trim(),
+      maxLossRupees: totalRiskRupees,
+      maxLossPct: totalRiskPct,
     });
   };
+
+  const reasonPresets = [
+    '15m ORB Breakout',
+    'VWAP Support Rebound',
+    'Heavy OI Unwinding',
+    'Range Compression',
+    'Day High Re-test'
+  ];
 
   return (
     <div style={B.backdrop} onClick={() => setOrderModalOpen(false)}>
@@ -187,15 +204,24 @@ export const OrderTicketModal = () => {
             </div>
           )}
 
-          {/* Position Sizing Stepper */}
+          {/* Position Sizer with Dynamic Lots Calculation */}
           <div style={B.sizerBox}>
             <div style={B.sizerHeader}>
               <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                Position Sizing & Lot Count
+                Dynamic Position Sizing (Cap: ₹{maxRiskRupees.toLocaleString('en-IN')})
               </span>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                Total contracts: <strong className="font-num" style={{ color: 'var(--text-primary)' }}>{totalQty}</strong>
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
+                  Max Safe: <strong className="font-num" style={{ color: 'var(--profit)' }}>{maxSafeLots}</strong> {maxSafeLots === 1 ? 'lot' : 'lots'}
+                </span>
+                <button
+                  type="button"
+                  style={B.maxSafeBtn}
+                  onClick={() => setLots(maxSafeLots)}
+                >
+                  Set to Max Safe ({maxSafeLots})
+                </button>
+              </div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -220,20 +246,20 @@ export const OrderTicketModal = () => {
               </div>
 
               <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                (₹{(price * totalQty).toLocaleString('en-IN', { maximumFractionDigits: 0 })} capital allocated)
+                Total contracts: <strong className="font-num" style={{ color: 'var(--text-primary)' }}>{totalQty}</strong> (₹{(price * totalQty).toLocaleString('en-IN', { maximumFractionDigits: 0 })} capital)
               </span>
             </div>
           </div>
 
-          {/* Prominent Max Loss Confirmation Panel (Strict Requirement) */}
+          {/* Prominent Max Loss Confirmation Panel (Strict User Requirement) */}
           <div style={{ ...B.riskCard, ...(isOverCapitalLimit ? B.riskCardOver : {}) }}>
             <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-secondary)', marginBottom: 6 }}>
-              Risk Assessment & Capital Exposure
+              Pre-Trade Loss Exposure & Sizing Verification
             </div>
 
             <div style={B.riskRow}>
               <span style={B.riskLabel}>Maximum Defined Loss (in Rupees):</span>
-              <span className="font-num" style={{ fontSize: '13px', fontWeight: 600, color: isOverCapitalLimit ? 'var(--loss)' : 'var(--loss)' }}>
+              <span className="font-num" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--loss)' }}>
                 -₹{totalRiskRupees.toLocaleString('en-IN')}
               </span>
             </div>
@@ -241,7 +267,7 @@ export const OrderTicketModal = () => {
             <div style={B.riskRow}>
               <span style={B.riskLabel}>Max Loss (% of Total Capital):</span>
               <span className="font-num" style={{ fontSize: '13px', fontWeight: 600, color: isOverCapitalLimit ? 'var(--loss)' : 'var(--text-primary)' }}>
-                {totalRiskPct}% <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>(Cap: {riskRules.maxCapitalRiskPct}%)</span>
+                {totalRiskPct}% <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>(Strict Cap: {riskRules.maxCapitalRiskPct}%)</span>
               </span>
             </div>
 
@@ -256,10 +282,47 @@ export const OrderTicketModal = () => {
               <div style={B.overLimitWarning}>
                 <AlertCircle size={13} style={{ color: 'var(--loss)', flexShrink: 0 }} />
                 <span>
-                  Exceeds {riskRules.maxCapitalRiskPct}% account risk cap (-₹{maxRiskRupees.toLocaleString('en-IN')}). Reduce lot size.
+                  Exceeds {riskRules.maxCapitalRiskPct}% account risk cap (-₹{maxRiskRupees.toLocaleString('en-IN')}). Reduce to ≤{maxSafeLots} lot(s).
                 </span>
               </div>
             )}
+          </div>
+
+          {/* Reason for Entry Field (Feeds Journal and Slows Impulsive Trades) */}
+          <div style={B.reasonSection}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <label style={B.inputLabel}>
+                Reason for Entry (Mandatory Trade Thesis) <span style={{ color: 'var(--loss)' }}>*</span>
+              </label>
+              <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                Slows impulsive trades · Feeds journal
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
+              {reasonPresets.map(preset => (
+                <button
+                  key={preset}
+                  type="button"
+                  style={{
+                    ...B.reasonPresetPill,
+                    ...(reason === preset ? B.reasonPresetPillActive : {})
+                  }}
+                  onClick={() => setReason(preset)}
+                >
+                  {preset}
+                </button>
+              ))}
+            </div>
+
+            <input
+              type="text"
+              className="form-input"
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              placeholder="Why are you taking this trade? (e.g. 15m breakout above VWAP)"
+              required
+            />
           </div>
 
           {/* Auto Trailing Stop-Loss Option */}
@@ -274,7 +337,7 @@ export const OrderTicketModal = () => {
           </label>
 
           {/* Action Submission */}
-          <div style={{ marginTop: 4 }}>
+          <div style={{ marginTop: 2 }}>
             <button
               type="submit"
               disabled={!canSubmit}
@@ -282,15 +345,15 @@ export const OrderTicketModal = () => {
               style={{
                 width: '100%',
                 justifyContent: 'center',
-                padding: '9px 12px',
-                fontSize: '12.5px',
+                padding: '10px 14px',
+                fontSize: '13px',
                 fontWeight: 600,
                 borderRadius: 'var(--radius)',
                 opacity: canSubmit ? 1 : 0.45,
                 cursor: canSubmit ? 'pointer' : 'not-allowed',
               }}
             >
-              <ShieldCheck size={14} />
+              <ShieldCheck size={15} />
               Transmit Verified {action} Order to Upstox
             </button>
           </div>
@@ -307,7 +370,7 @@ const B = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(20, 23, 28, 0.45)',
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
     backdropFilter: 'blur(2px)',
     display: 'flex',
     alignItems: 'center',
@@ -315,7 +378,7 @@ const B = {
     zIndex: 9000,
   },
   drawer: {
-    width: '450px',
+    width: '460px',
     maxWidth: '94vw',
     backgroundColor: 'var(--bg-surface)',
     border: '1px solid var(--border-main)',
@@ -327,12 +390,12 @@ const B = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '10px 16px',
-    backgroundColor: 'var(--bg-surface)',
+    padding: '12px 16px',
+    backgroundColor: 'var(--bg-card)',
     borderBottom: '1px solid var(--border-main)',
   },
   headerTitle: {
-    fontSize: '12.5px',
+    fontSize: '13px',
     fontWeight: 600,
     color: 'var(--text-primary)',
     display: 'block',
@@ -357,21 +420,22 @@ const B = {
     gap: 8,
     padding: '8px 14px',
     backgroundColor: 'var(--loss-bg)',
-    borderBottom: '1px solid var(--border-light)',
+    borderBottom: '1px solid var(--border-subtle)',
   },
   body: {
     padding: '14px 16px',
     display: 'flex',
     flexDirection: 'column',
-    gap: 12,
+    gap: 11,
+    backgroundColor: 'var(--bg-card)',
   },
   instrumentCard: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '8px 10px',
-    backgroundColor: 'var(--bg-secondary)',
-    border: '1px solid var(--border-light)',
+    padding: '8px 12px',
+    backgroundColor: 'var(--bg-surface)',
+    border: '1px solid var(--border-main)',
     borderRadius: 'var(--radius)',
   },
   instSymbol: {
@@ -389,18 +453,18 @@ const B = {
     fontSize: '10.5px',
     fontWeight: 600,
     color: 'var(--navy)',
-    backgroundColor: 'var(--bg-main)',
-    padding: '2px 7px',
+    backgroundColor: 'var(--bg-card)',
+    padding: '2px 8px',
     borderRadius: '3px',
     border: '1px solid var(--border-main)',
   },
   sideBtn: {
-    padding: '6px',
-    fontSize: '11.5px',
+    padding: '7px',
+    fontSize: '12px',
     fontWeight: 600,
     borderRadius: 'var(--radius)',
     border: '1px solid var(--border-main)',
-    backgroundColor: 'var(--bg-secondary)',
+    backgroundColor: 'var(--bg-surface)',
     color: 'var(--text-secondary)',
     cursor: 'pointer',
     transition: 'all 120ms ease',
@@ -417,7 +481,7 @@ const B = {
   },
   inputLabel: {
     fontSize: '11px',
-    fontWeight: 500,
+    fontWeight: 600,
     color: 'var(--text-secondary)',
     display: 'block',
     marginBottom: 3,
@@ -428,16 +492,16 @@ const B = {
     gap: 6,
     padding: '6px 10px',
     backgroundColor: 'var(--loss-bg)',
-    border: '1px solid var(--border-light)',
+    border: '1px solid var(--border-subtle)',
     borderRadius: 'var(--radius)',
   },
   sizerBox: {
     display: 'flex',
     flexDirection: 'column',
     gap: 6,
-    padding: '8px 10px',
-    backgroundColor: 'var(--bg-secondary)',
-    border: '1px solid var(--border-light)',
+    padding: '8px 12px',
+    backgroundColor: 'var(--bg-surface)',
+    border: '1px solid var(--border-main)',
     borderRadius: 'var(--radius)',
   },
   sizerHeader: {
@@ -445,19 +509,29 @@ const B = {
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  maxSafeBtn: {
+    fontSize: '10px',
+    fontWeight: 600,
+    padding: '2px 6px',
+    border: '1px solid var(--border-main)',
+    borderRadius: '3px',
+    backgroundColor: 'var(--bg-card)',
+    color: 'var(--navy)',
+    cursor: 'pointer',
+  },
   stepperWrap: {
     display: 'flex',
     alignItems: 'center',
     border: '1px solid var(--border-main)',
     borderRadius: 'var(--radius)',
-    backgroundColor: 'var(--bg-surface)',
+    backgroundColor: 'var(--bg-card)',
     overflow: 'hidden',
   },
   stepBtn: {
-    padding: '3px 10px',
+    padding: '4px 12px',
     border: 'none',
     background: 'none',
-    fontSize: '13px',
+    fontSize: '14px',
     cursor: 'pointer',
     color: 'var(--text-primary)',
   },
@@ -466,12 +540,12 @@ const B = {
     fontSize: '12px',
     fontWeight: 600,
     color: 'var(--text-primary)',
-    minWidth: '60px',
+    minWidth: '64px',
     textAlign: 'center',
   },
   riskCard: {
     padding: '10px 12px',
-    backgroundColor: 'var(--bg-secondary)',
+    backgroundColor: 'var(--bg-surface)',
     border: '1px solid var(--border-main)',
     borderRadius: 'var(--radius)',
     display: 'flex',
@@ -497,9 +571,28 @@ const B = {
     gap: 6,
     marginTop: 4,
     paddingTop: 4,
-    borderTop: '1px solid var(--border-light)',
-    fontSize: '10.5px',
+    borderTop: '1px solid var(--border-subtle)',
+    fontSize: '11px',
     color: 'var(--loss)',
+  },
+  reasonSection: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  reasonPresetPill: {
+    fontSize: '10px',
+    padding: '2px 7px',
+    borderRadius: '3px',
+    border: '1px solid var(--border-main)',
+    backgroundColor: 'var(--bg-surface)',
+    color: 'var(--text-secondary)',
+    cursor: 'pointer',
+  },
+  reasonPresetPillActive: {
+    backgroundColor: 'var(--navy)',
+    borderColor: 'var(--navy)',
+    color: '#FFFFFF',
+    fontWeight: 600,
   },
   checkboxLabel: {
     display: 'flex',

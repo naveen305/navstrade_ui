@@ -86,9 +86,9 @@ export const TradingProvider = ({ children }) => {
   // Real-time market tick simulator
   useEffect(() => {
     const interval = setInterval(() => {
-      // 1. Tick watchlist slightly
-      setWatchlist(prev =>
-        prev.map(item => {
+      // 1. Tick watchlist slightly and synchronize selectedSymbol
+      setWatchlist(prev => {
+        const next = prev.map(item => {
           const delta = (Math.random() - 0.49) * (item.price * 0.0005);
           const newPrice = +(item.price + delta).toFixed(2);
           const newChange = +(item.change + delta).toFixed(2);
@@ -100,12 +100,39 @@ export const TradingProvider = ({ children }) => {
             changePct: newPct,
             tickDir: delta >= 0 ? 'up' : 'down'
           };
-        })
-      );
+        });
+        setSelectedSymbol(curr => next.find(w => w.symbol === curr.symbol) || curr);
+        return next;
+      });
 
       // 2. Tick active positions
       setPositions(prev =>
         prev.map(pos => {
+          if (pos.isSpread) {
+            const spreadDelta = (Math.random() - 0.48) * 0.12;
+            const newSpreadVal = Math.max(0.2, +(pos.currentPrice + spreadDelta).toFixed(2));
+            const pnlDelta = (newSpreadVal - pos.entryPrice) * pos.qty;
+            const pnlPct = +(((newSpreadVal - pos.entryPrice) / pos.entryPrice) * 100).toFixed(1);
+
+            return {
+              ...pos,
+              currentPrice: newSpreadVal,
+              pnl: +pnlDelta.toFixed(2),
+              pnlPct: pnlPct,
+              tickDir: spreadDelta >= 0 ? 'up' : 'down',
+              legs: pos.legs?.map((leg, idx) => {
+                const legDelta = idx === 0 ? spreadDelta * 1.2 : -spreadDelta * 0.2;
+                const newLegPrice = Math.max(0.1, +(leg.currentPrice + legDelta).toFixed(2));
+                const legPnl = (newLegPrice - leg.entryPrice) * leg.qty;
+                return {
+                  ...leg,
+                  currentPrice: newLegPrice,
+                  pnl: +legPnl.toFixed(2),
+                };
+              })
+            };
+          }
+
           const tickDelta = (Math.random() - 0.48) * (pos.currentPrice * 0.0018);
           const newPrice = Math.max(0.05, +(pos.currentPrice + tickDelta).toFixed(2));
           const pnlDelta = (newPrice - pos.entryPrice) * pos.qty;
@@ -244,6 +271,7 @@ export const TradingProvider = ({ children }) => {
       currentPrice: order.price,
       sl: order.sl,
       target: order.target,
+      maxLoss: order.maxLossRupees || Math.abs(order.price - order.sl) * order.qty,
       trailingSlActive: order.trailingSlActive,
       trailingSlStep: 2.0,
       pnl: 0,
@@ -251,7 +279,8 @@ export const TradingProvider = ({ children }) => {
       delta: 0.50,
       theta: -18.0,
       vega: 12.0,
-      time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+      time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+      reason: order.reason || 'Systematic entry with defined risk parameters'
     };
 
     setPositions(prev => [newPos, ...prev]);

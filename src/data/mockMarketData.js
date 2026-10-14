@@ -170,19 +170,21 @@ export const INITIAL_OPTION_CHAIN = [
   }
 ];
 
-// Active Sample Positions (Reflecting Systematic Trades)
+// Active Sample Positions (Reflecting Systematic Defined-Risk Trades)
 export const INITIAL_POSITIONS = [
   {
     id: 'POS-101',
     symbol: 'NIFTY 25150 CE',
     strategy: 'Momentum Breakout',
     type: 'BUY',
+    isSpread: false,
     qty: 50, // 2 lots
     lotSize: 25,
     entryPrice: 84.50,
     currentPrice: 93.80,
     sl: 72.00,
     target: 110.00,
+    maxLoss: 625.00, // (84.50 - 72.00) * 50 = ₹625 (0.125% of ₹5,00,000, well under 1.5% cap)
     trailingSlActive: true,
     trailingSlStep: 5.0,
     trailingTriggerPrice: 89.50,
@@ -192,51 +194,55 @@ export const INITIAL_POSITIONS = [
     delta: 0.45,
     theta: -22.8,
     vega: 17.2,
-    time: '10:14 AM'
+    time: '10:14 AM',
+    reason: 'Pierced 15m ORB high with 2.4x volume surge.'
   },
   {
     id: 'POS-102',
-    symbol: 'TATAMOTORS 930 CE',
-    strategy: 'Bull Call Spread (Leg 1)',
-    type: 'BUY',
+    symbol: 'TATAMOTORS 940/950 BULL CALL SPREAD',
+    strategy: 'Bull Call Spread (Defined Risk)',
+    type: 'DEBIT SPREAD',
+    isSpread: true,
     qty: 1425, // 1 lot
     lotSize: 1425,
-    entryPrice: 22.40,
-    currentPrice: 26.80,
-    sl: 18.00,
-    target: 32.00,
+    entryPrice: 4.20,      // Combined Net Debit paid (₹14.80 - ₹10.60)
+    currentPrice: 5.70,    // Current spread value (₹18.20 - ₹12.50)
+    sl: 2.20,              // Combined stop-loss: exit spread if value drops to ₹2.20
+    target: 8.00,          // Combined target: exit spread if value expands to ₹8.00
+    maxLoss: 5985.00,      // ₹4.20 * 1425 = ₹5,985 max loss (1.20% of ₹5,00,000, strictly <= 1.5% cap)
     trailingSlActive: true,
-    trailingSlStep: 2.0,
-    trailingTriggerPrice: 24.40,
-    trailDistance: 2.0,
-    pnl: 6270.00,
-    pnlPct: 19.6,
-    delta: 0.62,
-    theta: -4.2,
-    vega: 8.5,
-    time: '09:42 AM'
-  },
-  {
-    id: 'POS-103',
-    symbol: 'TATAMOTORS 950 CE',
-    strategy: 'Bull Call Spread (Leg 2 - Hedge)',
-    type: 'SELL',
-    qty: -1425, // -1 lot
-    lotSize: 1425,
-    entryPrice: 12.10,
-    currentPrice: 14.50,
-    sl: 18.50,
-    target: 6.00,
-    trailingSlActive: false,
-    trailingSlStep: 0,
-    trailingTriggerPrice: null,
-    trailDistance: 0,
-    pnl: -3420.00,
-    pnlPct: -19.8,
-    delta: -0.38,
-    theta: 3.8,
-    vega: -6.2,
-    time: '09:42 AM'
+    trailingSlStep: 1.0,
+    trailingTriggerPrice: 5.20,
+    trailDistance: 1.0,
+    pnl: 2137.50,          // (5.70 - 4.20) * 1425 = +₹2,137.50
+    pnlPct: 35.7,
+    delta: 0.22,           // Net Delta: 0.54 - 0.32
+    theta: -0.4,           // Theta decay cushioned by short wing
+    vega: 2.3,
+    time: '09:42 AM',
+    reason: 'Tested VWAP support with Call OI addition at 940 strike.',
+    legs: [
+      {
+        action: 'BUY',
+        symbol: 'TATAMOTORS 940 CE',
+        strike: 940,
+        qty: 1425,
+        entryPrice: 14.80,
+        currentPrice: 18.20,
+        pnl: 4845.00,
+        delta: 0.54,
+      },
+      {
+        action: 'SELL',
+        symbol: 'TATAMOTORS 950 CE',
+        strike: 950,
+        qty: -1425,
+        entryPrice: 10.60,
+        currentPrice: 12.50,
+        pnl: -2707.50,
+        delta: -0.32,
+      }
+    ]
   }
 ];
 
