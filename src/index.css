@@ -1,0 +1,319 @@
+:root {
+  /* Color Palette - Institutional Obsidian / Bloomberg Terminal */
+  --bg-canvas: #07090e;
+  --bg-surface-1: #0d121d;
+  --bg-surface-2: #121929;
+  --bg-surface-3: #1a233a;
+  --bg-glass: rgba(13, 18, 29, 0.85);
+
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-medium: rgba(255, 255, 255, 0.14);
+  --border-bright: rgba(255, 255, 255, 0.22);
+  --border-cyan: rgba(0, 240, 255, 0.35);
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-highlight: #ffffff;
+
+  /* Institutional Signal Accents */
+  --neon-cyan: #00f0ff;
+  --neon-cyan-bg: rgba(0, 240, 255, 0.08);
+  --neon-cyan-glow: 0 0 16px rgba(0, 240, 255, 0.25);
+
+  --profit-green: #10b981;
+  --profit-green-bg: rgba(16, 185, 129, 0.12);
+  --profit-glow: 0 0 12px rgba(16, 185, 129, 0.3);
+
+  --loss-red: #f43f5e;
+  --loss-red-bg: rgba(244, 63, 94, 0.12);
+  --loss-glow: 0 0 12px rgba(244, 63, 94, 0.3);
+
+  --alert-amber: #f59e0b;
+  --alert-amber-bg: rgba(245, 158, 11, 0.12);
+
+  --strategy-purple: #a855f7;
+  --strategy-purple-bg: rgba(168, 85, 247, 0.12);
+
+  /* Fonts */
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.7);
+
+  /* Transitions */
+  --trans-fast: 0.15s ease;
+  --trans-normal: 0.25s ease;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  line-height: 1.5;
+  font-size: 13px;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbar for Dense Financial Tables */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-surface-1);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bg-surface-3);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Typography Utilities */
+.mono {
+  font-family: var(--font-mono);
+}
+
+.text-profit {
+  color: var(--profit-green) !important;
+}
+.text-loss {
+  color: var(--loss-red) !important;
+}
+.text-cyan {
+  color: var(--neon-cyan) !important;
+}
+.text-amber {
+  color: var(--alert-amber) !important;
+}
+.text-muted {
+  color: var(--text-muted);
+}
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+/* Flash Animations on Live Ticks */
+@keyframes flashGreen {
+  0% { background-color: rgba(16, 185, 129, 0.35); }
+  100% { background-color: transparent; }
+}
+
+@keyframes flashRed {
+  0% { background-color: rgba(244, 63, 94, 0.35); }
+  100% { background-color: transparent; }
+}
+
+.flash-up {
+  animation: flashGreen 0.7s cubic-bezier(0.1, 0.9, 0.2, 1);
+}
+.flash-down {
+  animation: flashRed 0.7s cubic-bezier(0.1, 0.9, 0.2, 1);
+}
+
+/* Pulse animation for live indicators */
+@keyframes livePulse {
+  0% { transform: scale(0.95); opacity: 0.7; }
+  50% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.7; }
+}
+
+.pulse-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: livePulse 2s infinite ease-in-out;
+}
+
+.pulse-green {
+  background-color: var(--profit-green);
+  box-shadow: 0 0 8px var(--profit-green);
+}
+.pulse-cyan {
+  background-color: var(--neon-cyan);
+  box-shadow: 0 0 8px var(--neon-cyan);
+}
+.pulse-amber {
+  background-color: var(--alert-amber);
+  box-shadow: 0 0 8px var(--alert-amber);
+}
+.pulse-red {
+  background-color: var(--loss-red);
+  box-shadow: 0 0 8px var(--loss-red);
+}
+
+/* Button & Badge Tokens */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--trans-fast);
+  white-space: nowrap;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 14px rgba(0, 198, 255, 0.3);
+}
+.btn-primary:hover {
+  filter: brightness(1.15);
+  box-shadow: 0 0 20px rgba(0, 198, 255, 0.5);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #f43f5e 0%, #be123c 100%);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 14px rgba(244, 63, 94, 0.3);
+}
+.btn-danger:hover {
+  filter: brightness(1.15);
+  box-shadow: 0 0 22px rgba(244, 63, 94, 0.55);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+.btn-success:hover {
+  filter: brightness(1.15);
+}
+
+.btn-outline {
+  background: var(--bg-surface-2);
+  border-color: var(--border-medium);
+  color: var(--text-primary);
+}
+.btn-outline:hover {
+  background: var(--bg-surface-3);
+  border-color: var(--border-bright);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+}
+
+.badge-cyan {
+  background: var(--neon-cyan-bg);
+  color: var(--neon-cyan);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+}
+.badge-green {
+  background: var(--profit-green-bg);
+  color: var(--profit-green);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.badge-red {
+  background: var(--loss-red-bg);
+  color: var(--loss-red);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+}
+.badge-amber {
+  background: var(--alert-amber-bg);
+  color: var(--alert-amber);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+.badge-purple {
+  background: var(--strategy-purple-bg);
+  color: var(--strategy-purple);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+/* Card & Container Utilities */
+.terminal-card {
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--trans-fast);
+}
+.terminal-card:hover {
+  border-color: var(--border-medium);
+}
+.terminal-card-header {
+  padding: 10px 14px;
+  background: var(--bg-surface-2);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.terminal-card-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.terminal-card-body {
+  padding: 12px 14px;
+}
+
+/* Data Table Utilities */
+.terminal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.terminal-table th {
+  background: var(--bg-surface-2);
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.terminal-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background var(--trans-fast);
+}
+.terminal-table tr:hover td {
+  background: rgba(255, 255, 255, 0.025);
+}
