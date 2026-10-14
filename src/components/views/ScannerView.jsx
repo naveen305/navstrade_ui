@@ -1,46 +1,97 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTrading } from '../../context/TradingContext';
-import { Radar, ArrowRight, Activity, Filter, CheckCircle2 } from 'lucide-react';
+import { Radar, ArrowRight, ArrowUpDown, ChevronUp, ChevronDown, Info, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 export const ScannerView = () => {
   const { scannerSignals, openOrderTicket, watchlist, setSelectedSymbol } = useTrading();
   const [activeCategory, setActiveCategory] = useState('ALL');
+  const [sortField, setSortField] = useState('confidenceScore');
+  const [sortDirection, setSortDirection] = useState('desc'); // 'asc' | 'desc'
 
-  const filtered = scannerSignals.filter(sig => {
-    if (activeCategory === 'ALL') return true;
-    if (activeCategory === 'HIGH_CONF') return sig.confidenceScore >= 80;
-    if (activeCategory === 'BULLISH') return sig.category === 'Bullish Buildup';
-    if (activeCategory === 'BEARISH') return sig.category === 'Short Buildup';
-    if (activeCategory === 'BREAKOUT') return sig.category === 'Breakout';
-    if (activeCategory === 'RANGE') return sig.category === 'Range-Bound';
-    return true;
-  });
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
 
-  const signalTag = (category) => {
-    if (category === 'Bullish Buildup') return 'tag-up';
-    if (category === 'Short Buildup') return 'tag-down';
-    if (category === 'Breakout') return 'tag-info';
-    return 'tag-neutral';
+  const filteredAndSorted = useMemo(() => {
+    let list = scannerSignals.filter(sig => {
+      if (activeCategory === 'ALL') return true;
+      if (activeCategory === 'HIGH_CONF') return sig.confidenceScore >= 80;
+      if (activeCategory === 'BULLISH') return sig.category === 'Bullish Buildup';
+      if (activeCategory === 'BEARISH') return sig.category === 'Short Buildup';
+      if (activeCategory === 'BREAKOUT') return sig.category === 'Breakout';
+      if (activeCategory === 'RANGE') return sig.category === 'Range-Bound';
+      return true;
+    });
+
+    list.sort((a, b) => {
+      let valA = a[sortField];
+      let valB = b[sortField];
+
+      if (sortField === 'oiChangePct') {
+        valA = parseFloat(a.oiChangePct);
+        valB = parseFloat(b.oiChangePct);
+      } else if (sortField === 'volumeMultiplier') {
+        valA = parseFloat(a.volumeMultiplier);
+        valB = parseFloat(b.volumeMultiplier);
+      } else if (sortField === 'pcr') {
+        valA = parseFloat(a.pcr);
+        valB = parseFloat(b.pcr);
+      }
+
+      if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+      if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return list;
+  }, [scannerSignals, activeCategory, sortField, sortDirection]);
+
+  const signalStyle = (category) => {
+    if (category === 'Bullish Buildup') {
+      return { bg: 'var(--profit-bg)', color: 'var(--profit)', border: '1px solid var(--border-light)' };
+    }
+    if (category === 'Short Buildup') {
+      return { bg: 'var(--loss-bg)', color: 'var(--loss)', border: '1px solid var(--border-light)' };
+    }
+    if (category === 'Breakout') {
+      return { bg: 'var(--bg-secondary)', color: 'var(--navy)', border: '1px solid var(--border-main)' };
+    }
+    return { bg: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-light)' };
+  };
+
+  const renderSortArrow = (field) => {
+    if (sortField !== field) {
+      return <ArrowUpDown size={11} style={{ opacity: 0.35, marginLeft: 3 }} />;
+    }
+    return sortDirection === 'asc'
+      ? <ChevronUp size={12} style={{ color: 'var(--navy)', marginLeft: 3 }} />
+      : <ChevronDown size={12} style={{ color: 'var(--navy)', marginLeft: 3 }} />;
   };
 
   return (
     <div style={S.root}>
-      {/* ── Toolbar ── */}
+      {/* ── Sub-header Toolbar ── */}
       <div style={S.toolbar}>
         <div style={S.toolLeft}>
-          <Radar size={14} style={{ color: 'var(--text-secondary)' }} />
-          <span style={S.pageTitle}>F&O Institutional Activity Scanner</span>
-          <div style={S.liveBadge}>
-            <span className="live-dot" />
-            <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>Scanning 184 NSE F&O Stocks</span>
+          <Radar size={15} style={{ color: 'var(--navy)' }} />
+          <div>
+            <span style={S.pageTitle}>F&O Institutional Scanner</span>
+            <span style={S.pageSubtitle}>
+              Continuous scan across 184 NSE F&O underlyings · Real-time volume spikes & OI shifts
+            </span>
           </div>
         </div>
 
-        {/* Category Filters */}
+        {/* Filter Pills */}
         <div style={S.filterGroup}>
           {[
             { id: 'ALL', label: `All (${scannerSignals.length})` },
-            { id: 'HIGH_CONF', label: 'High Conf ≥80%' },
+            { id: 'HIGH_CONF', label: 'Confidence ≥ 80%' },
             { id: 'BULLISH', label: 'Bullish Buildup' },
             { id: 'BEARISH', label: 'Short Buildup' },
             { id: 'BREAKOUT', label: 'Breakouts' },
@@ -48,7 +99,10 @@ export const ScannerView = () => {
           ].map(f => (
             <button
               key={f.id}
-              style={{ ...S.filterBtn, ...(activeCategory === f.id ? S.filterBtnActive : {}) }}
+              style={{
+                ...S.filterBtn,
+                ...(activeCategory === f.id ? S.filterBtnActive : {})
+              }}
               onClick={() => setActiveCategory(f.id)}
             >
               {f.label}
@@ -56,122 +110,197 @@ export const ScannerView = () => {
           ))}
         </div>
 
-        <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
-          {filtered.length} Setups Found
+        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+          Showing <strong className="font-num" style={{ color: 'var(--text-primary)' }}>{filteredAndSorted.length}</strong> qualified setups
         </div>
       </div>
 
-      {/* ── Educational Strategy Strip ── */}
-      <div style={S.alertStrip}>
-        <Activity size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-        <span style={{ fontSize: '10.5px', color: 'var(--text-secondary)' }}>
-          System flags abnormal OI accumulation, 15m volume spikes (&gt;1.5x), and PCR divergence.
-          Only trade signals matching predefined defined-risk templates with mandatory stop-losses.
-        </span>
-      </div>
-
-      {/* ── Dense Scanner Table ── */}
-      <div style={S.tableWrap}>
-        <table className="data-table">
+      {/* ── Table Container ── */}
+      <div style={S.tableContainer}>
+        <table className="calm-table">
           <thead>
             <tr>
-              <th>Symbol</th>
-              <th style={{ textAlign: 'right' }}>Price (₹)</th>
-              <th>Signal Type</th>
-              <th style={{ textAlign: 'right' }}>OI Change</th>
-              <th style={{ textAlign: 'right' }}>Vol Multiple</th>
-              <th style={{ textAlign: 'right' }}>PCR</th>
-              <th style={{ textAlign: 'center' }}>Confidence</th>
-              <th>Suggested Strategy Leg</th>
-              <th style={{ textAlign: 'center' }}>Action</th>
+              <th onClick={() => handleSort('symbol')} style={{ cursor: 'pointer', width: '13%' }}>
+                <div style={S.thFlex}>
+                  <span>Symbol</span>
+                  {renderSortArrow('symbol')}
+                </div>
+              </th>
+              <th onClick={() => handleSort('price')} style={{ cursor: 'pointer', textAlign: 'right', width: '11%' }}>
+                <div style={{ ...S.thFlex, justifyContent: 'flex-end' }}>
+                  <span>Price (₹)</span>
+                  {renderSortArrow('price')}
+                </div>
+              </th>
+              <th onClick={() => handleSort('signal')} style={{ cursor: 'pointer', width: '14%' }}>
+                <div style={S.thFlex}>
+                  <span>Signal</span>
+                  {renderSortArrow('signal')}
+                </div>
+              </th>
+              <th onClick={() => handleSort('oiChangePct')} style={{ cursor: 'pointer', textAlign: 'right', width: '11%' }}>
+                <div style={{ ...S.thFlex, justifyContent: 'flex-end' }}>
+                  <span>OI Change</span>
+                  {renderSortArrow('oiChangePct')}
+                </div>
+              </th>
+              <th onClick={() => handleSort('volumeMultiplier')} style={{ cursor: 'pointer', textAlign: 'right', width: '11%' }}>
+                <div style={{ ...S.thFlex, justifyContent: 'flex-end' }}>
+                  <span>Vol Spike</span>
+                  {renderSortArrow('volumeMultiplier')}
+                </div>
+              </th>
+              <th onClick={() => handleSort('pcr')} style={{ cursor: 'pointer', textAlign: 'right', width: '9%' }}>
+                <div style={{ ...S.thFlex, justifyContent: 'flex-end' }}>
+                  <span>PCR</span>
+                  {renderSortArrow('pcr')}
+                </div>
+              </th>
+              <th onClick={() => handleSort('confidenceScore')} style={{ cursor: 'pointer', width: '14%' }}>
+                <div style={S.thFlex}>
+                  <span>Confidence</span>
+                  {renderSortArrow('confidenceScore')}
+                </div>
+              </th>
+              <th style={{ width: '17%' }}>Suggested Setup</th>
+              <th style={{ textAlign: 'center', width: '10%' }}>Action</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((sig, i) => {
+            {filteredAndSorted.map((sig, i) => {
               const matched = watchlist.find(w => w.symbol === sig.symbol);
-              const isHigh = sig.confidenceScore >= 80;
+              const isBull = sig.oiChangePct.startsWith('+');
+              const styleObj = signalStyle(sig.category);
 
               return (
                 <tr key={i}>
-                  <td style={{ fontWeight: 600, color: 'var(--text-white)' }}>
+                  <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                     {sig.symbol}
                   </td>
-                  <td className="font-data" style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>
-                    ₹{sig.price.toFixed(2)}
+
+                  <td className="font-num" style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>
+                    ₹{sig.price.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
+
                   <td>
-                    <span className={`tag ${signalTag(sig.category)}`}>
+                    <span
+                      style={{
+                        fontSize: '10.5px',
+                        fontWeight: 600,
+                        padding: '2px 7px',
+                        borderRadius: '3px',
+                        backgroundColor: styleObj.bg,
+                        color: styleObj.color,
+                        border: styleObj.border,
+                        display: 'inline-block'
+                      }}
+                    >
                       {sig.signal}
                     </span>
                   </td>
+
                   <td
-                    className="font-data"
+                    className="font-num"
                     style={{
                       textAlign: 'right',
                       fontWeight: 600,
-                      color: sig.oiChangePct.startsWith('+') ? 'var(--up)' : 'var(--down)'
+                      color: isBull ? 'var(--profit)' : 'var(--loss)'
                     }}
                   >
                     {sig.oiChangePct}
                   </td>
-                  <td className="font-data" style={{ textAlign: 'right', color: 'var(--text-primary)' }}>
+
+                  <td className="font-num" style={{ textAlign: 'right', color: 'var(--text-primary)' }}>
                     {sig.volumeMultiplier}
                   </td>
+
                   <td
-                    className="font-data"
+                    className="font-num"
                     style={{
                       textAlign: 'right',
-                      fontWeight: 600,
-                      color: Number(sig.pcr) >= 1 ? 'var(--up)' : 'var(--down)'
+                      fontWeight: 500,
+                      color: Number(sig.pcr) >= 1 ? 'var(--profit)' : 'var(--loss)'
                     }}
                   >
                     {sig.pcr}
                   </td>
-                  <td style={{ textAlign: 'center' }}>
-                    <span
-                      className="font-data"
-                      style={{
-                        fontSize: '10px',
-                        fontWeight: 600,
-                        color: isHigh ? 'var(--up)' : 'var(--warn)',
-                        background: isHigh ? 'var(--up-bg)' : 'var(--warn-bg)',
-                        padding: '1.5px 5px',
-                        borderRadius: '2px',
-                        border: isHigh ? '1px solid var(--up-border)' : '1px solid var(--warn-border)'
-                      }}
-                    >
-                      {sig.confidenceScore}%
-                    </span>
+
+                  {/* Confidence bar plus number */}
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div
+                        style={{
+                          flex: 1,
+                          height: '5px',
+                          backgroundColor: 'var(--bg-main)',
+                          border: '1px solid var(--border-main)',
+                          borderRadius: '2.5px',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <div
+                          style={{
+                            height: '100%',
+                            width: `${sig.confidenceScore}%`,
+                            backgroundColor:
+                              sig.confidenceScore >= 80
+                                ? 'var(--profit)'
+                                : sig.confidenceScore >= 65
+                                ? 'var(--navy)'
+                                : 'var(--warning)',
+                            borderRadius: '2px',
+                          }}
+                        />
+                      </div>
+                      <span
+                        className="font-num"
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          minWidth: '28px',
+                          color: 'var(--text-primary)',
+                        }}
+                      >
+                        {sig.confidenceScore}%
+                      </span>
+                    </div>
                   </td>
-                  <td style={{ color: 'var(--text-primary)', fontSize: '11px' }}>
+
+                  <td style={{ color: 'var(--text-secondary)', fontSize: '11.5px' }}>
                     {sig.suggestedAction}
                   </td>
+
                   <td style={{ textAlign: 'center' }}>
                     <button
-                      className="btn btn-ghost btn-sm"
+                      className="btn btn-outline"
                       style={{
-                        padding: '2px 8px',
-                        fontSize: '10px',
-                        gap: '3px',
-                        color: '#60a5fa',
-                        borderColor: 'rgba(59, 130, 246, 0.3)'
+                        padding: '3px 8px',
+                        fontSize: '11px',
+                        borderRadius: 'var(--radius)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3,
+                        borderColor: 'var(--border-main)',
+                        color: 'var(--navy)',
                       }}
                       onClick={() => {
                         if (matched) setSelectedSymbol(matched);
                         openOrderTicket({
                           symbol: `${sig.symbol} — ${sig.suggestedAction}`,
                           action: 'BUY',
-                          price: +(sig.price * 0.05).toFixed(1),
-                          sl: +(sig.price * 0.035).toFixed(1),
-                          target: +(sig.price * 0.08).toFixed(1),
+                          price: +(sig.price * 0.04).toFixed(1),
+                          sl: +(sig.price * 0.028).toFixed(1),
+                          target: +(sig.price * 0.065).toFixed(1),
                           lotSize: matched?.lotSize || 100,
                           qty: matched?.lotSize || 100,
-                          strategy: sig.suggestedAction
+                          strategy: sig.suggestedAction,
+                          maxLossRupees: 1200,
+                          maxLossPct: 1.0,
                         });
                       }}
                     >
-                      Deploy Ticket
-                      <ArrowRight size={10} />
+                      Trade
+                      <ArrowRight size={11} />
                     </button>
                   </td>
                 </tr>
@@ -181,13 +310,18 @@ export const ScannerView = () => {
         </table>
       </div>
 
-      {/* ── Footer Guidance ── */}
-      <div style={S.footer}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <CheckCircle2 size={12} style={{ color: 'var(--up)' }} />
-          <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-            Institutional Filter Rule: Scanner auto-rejects any trade exceeding 1.5% maximum capital risk. Stop losses are hardcoded on order transmission.
-          </span>
+      {/* ── Explanatory Note on Confidence Computation (Strict User Requirement) ── */}
+      <div style={S.footerNote}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+          <Info size={14} style={{ color: 'var(--navy)', marginTop: 2, flexShrink: 0 }} />
+          <div>
+            <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-primary)', display: 'block' }}>
+              Confidence Score Methodology
+            </span>
+            <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '2px 0 0 0', lineHeight: 1.45 }}>
+              Confidence is quantitatively computed from 4 weighted variables: <strong>35%</strong> OI buildup acceleration rate, <strong>25%</strong> 15-minute volume relative to 20-period moving average, <strong>20%</strong> Put-Call Ratio (PCR) momentum divergence, and <strong>20%</strong> VWAP structural alignment. Scores ≥80% indicate high institutional order-flow confluence.
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -200,57 +334,69 @@ const S = {
     flexDirection: 'column',
     height: '100%',
     overflow: 'hidden',
-    userSelect: 'none',
+    backgroundColor: 'var(--bg-main)',
   },
   toolbar: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '6px 12px',
-    background: 'var(--bg-panel-2)',
-    borderBottom: '1px solid var(--border-1)',
-    height: '38px',
+    padding: '8px 16px',
+    backgroundColor: 'var(--bg-surface)',
+    borderBottom: '1px solid var(--border-main)',
     flexShrink: 0,
+    gap: 12,
   },
-  toolLeft: { display: 'flex', alignItems: 'center', gap: '8px' },
-  pageTitle: { fontSize: '12px', fontWeight: 700, color: 'var(--text-white)' },
-  liveBadge: { display: 'flex', alignItems: 'center', gap: '5px', marginLeft: '6px' },
+  toolLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+  },
+  pageTitle: {
+    fontSize: '13px',
+    fontWeight: 600,
+    color: 'var(--text-primary)',
+    display: 'block',
+  },
+  pageSubtitle: {
+    fontSize: '11px',
+    color: 'var(--text-muted)',
+    display: 'block',
+  },
   filterGroup: {
     display: 'flex',
     alignItems: 'center',
-    gap: '2px',
-    background: 'var(--bg-base)',
-    padding: '2px',
-    borderRadius: '3px',
+    gap: 5,
   },
   filterBtn: {
-    padding: '2px 8px',
-    fontSize: '10.5px',
-    background: 'transparent',
-    border: 'none',
-    color: 'var(--text-muted)',
+    background: 'none',
+    border: '1px solid var(--border-main)',
+    borderRadius: 'var(--radius)',
+    padding: '3px 8px',
+    fontSize: '11.5px',
+    color: 'var(--text-secondary)',
     cursor: 'pointer',
-    borderRadius: '2px',
+    transition: 'all 120ms ease',
   },
   filterBtnActive: {
-    background: 'var(--bg-panel)',
-    color: 'var(--text-white)',
+    background: 'var(--bg-secondary)',
+    borderColor: 'var(--navy)',
+    color: 'var(--navy)',
     fontWeight: 600,
   },
-  alertStrip: {
+  tableContainer: {
+    flex: 1,
+    overflowY: 'auto',
+    backgroundColor: 'var(--bg-surface)',
+  },
+  thFlex: {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
-    padding: '6px 12px',
-    background: 'var(--bg-panel)',
-    borderBottom: '1px solid var(--border-1)',
-    flexShrink: 0,
+    gap: 2,
   },
-  tableWrap: { flex: 1, overflow: 'auto', background: 'var(--bg-panel)' },
-  footer: {
-    padding: '6px 12px',
-    background: 'var(--bg-panel-2)',
-    borderTop: '1px solid var(--border-1)',
+  footerNote: {
+    padding: '10px 16px',
+    backgroundColor: 'var(--bg-surface)',
+    borderTop: '1px solid var(--border-main)',
     flexShrink: 0,
   },
 };

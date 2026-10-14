@@ -7,31 +7,58 @@ import { OptionChainView }     from './components/views/OptionChainView';
 import { StrategyBuilderView } from './components/views/StrategyBuilderView';
 import { RiskDisciplineView }  from './components/views/RiskDisciplineView';
 import { ScannerView }         from './components/views/ScannerView';
+import { JournalView }         from './components/views/JournalView';
+import { SettingsView }        from './components/views/SettingsView';
 import { OrderTicketModal }    from './components/modals/OrderTicketModal';
 import { PanicModal }          from './components/modals/PanicModal';
+import { ShieldAlert, X }      from 'lucide-react';
 import './App.css';
 
 const VIEWS = {
   terminal:         TerminalView,
   option_chain:     OptionChainView,
+  strategies:       StrategyBuilderView,
   strategy_builder: StrategyBuilderView,
   risk_engine:      RiskDisciplineView,
   scanner:          ScannerView,
+  journal:          JournalView,
+  settings:         SettingsView,
 };
 
 const AppShell = () => {
-  const { activeTab, toastMessage } = useTrading();
+  const { activeTab, toastMessage, riskBanner, clearRiskBanner } = useTrading();
   const View = VIEWS[activeTab] || TerminalView;
 
   return (
     <div className="app-root">
       <Header />
+
+      {/* Calm Full-Width Risk Limit Banner (Strict User Requirement: Calm, no sirens, no flashing) */}
+      {riskBanner && (
+        <div className="calm-risk-banner">
+          <div className="banner-content">
+            <ShieldAlert size={15} style={{ color: 'var(--loss)', flexShrink: 0 }} />
+            <span className="banner-text">
+              <strong>Risk Guard Notice:</strong> {riskBanner.message}
+            </span>
+          </div>
+          <button
+            className="banner-close"
+            onClick={clearRiskBanner}
+            title="Acknowledge and reset simulation"
+          >
+            <X size={13} />
+          </button>
+        </div>
+      )}
+
       <div className="app-body">
         <Sidebar />
         <main className="main-content">
           <View />
         </main>
       </div>
+
       <OrderTicketModal />
       <PanicModal />
 

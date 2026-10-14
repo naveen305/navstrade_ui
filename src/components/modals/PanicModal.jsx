@@ -9,54 +9,58 @@ export const PanicModal = () => {
   const totalPnl = positions.reduce((s, p) => s + p.pnl, 0);
 
   return (
-    <div style={P.backdrop}>
-      <div style={P.modal}>
+    <div style={P.backdrop} onClick={() => setPanicModalOpen(false)}>
+      <div style={P.modal} onClick={e => e.stopPropagation()}>
         <div style={P.header}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <AlertTriangle size={14} style={{ color: 'var(--down)' }} />
-            <span style={{ fontWeight: 700, fontSize: '12px', color: 'var(--text-white)' }}>
-              Emergency Square-Off (Market Execution)
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <AlertTriangle size={15} style={{ color: 'var(--loss)' }} />
+            <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)' }}>
+              Confirm Square Off All Open Positions
             </span>
           </div>
           <button style={P.closeBtn} onClick={() => setPanicModalOpen(false)}>
-            <X size={13} />
+            <X size={14} />
           </button>
         </div>
 
         <div style={P.body}>
           <div style={P.warnBox}>
-            <p style={{ fontSize: '11.5px', color: 'var(--text-white)', fontWeight: 600, marginBottom: '3px' }}>
-              Confirm immediate square-off for all {positions.length} active position(s)?
+            <p style={{ fontSize: '12px', color: 'var(--loss)', fontWeight: 600, margin: '0 0 4px 0' }}>
+              Warning: Immediate market order execution
             </p>
-            <p style={{ fontSize: '10.5px', color: 'var(--text-secondary)', lineHeight: 1.35 }}>
-              Market orders will be sent instantly to Upstox API. All open limit and SL orders will be cancelled.
+            <p style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: 1.45, margin: 0 }}>
+              This will immediately submit market square-off orders for all {positions.length} active position(s) and cancel all pending stop-loss and target limit orders.
             </p>
           </div>
 
-          {positions.length > 0 && (
+          {positions.length > 0 ? (
             <div style={P.positionList}>
               {positions.map(p => (
                 <div key={p.id} style={P.posRow}>
-                  <span style={{ fontWeight: 600, fontSize: '11px', color: 'var(--text-white)' }}>{p.symbol}</span>
-                  <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>{Math.abs(p.qty)} qty</span>
-                  <span className="font-data" style={{ marginLeft: 'auto', fontSize: '11.5px', fontWeight: 600, color: p.pnl >= 0 ? 'var(--up)' : 'var(--down)' }}>
-                    {p.pnl >= 0 ? '+' : ''}₹{p.pnl.toFixed(2)}
+                  <span style={{ fontWeight: 600, fontSize: '11.5px', color: 'var(--text-primary)' }}>{p.symbol}</span>
+                  <span className="font-num" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{Math.abs(p.qty)} qty</span>
+                  <span className="font-num" style={{ marginLeft: 'auto', fontSize: '12px', fontWeight: 600, color: p.pnl >= 0 ? 'var(--profit)' : 'var(--loss)' }}>
+                    {p.pnl >= 0 ? '+' : ''}₹{p.pnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
               ))}
-              <div style={{ ...P.posRow, borderTop: '1px solid var(--border-2)', marginTop: '4px', paddingTop: '6px' }}>
-                <span style={{ fontWeight: 700, fontSize: '11px', color: 'var(--text-white)' }}>Total Realized MTM on Exit</span>
-                <span className="font-data" style={{ marginLeft: 'auto', fontWeight: 700, fontSize: '12px', color: totalPnl >= 0 ? 'var(--up)' : 'var(--down)' }}>
-                  {totalPnl >= 0 ? '+' : ''}₹{totalPnl.toFixed(2)}
+              <div style={{ ...P.posRow, borderTop: '1px solid var(--border-main)', marginTop: 4, paddingTop: 8 }}>
+                <span style={{ fontWeight: 600, fontSize: '11.5px', color: 'var(--text-primary)' }}>Net Unrealized P&L on Exit</span>
+                <span className="font-num" style={{ marginLeft: 'auto', fontWeight: 600, fontSize: '13px', color: totalPnl >= 0 ? 'var(--profit)' : 'var(--loss)' }}>
+                  {totalPnl >= 0 ? '+' : ''}₹{totalPnl.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </span>
               </div>
             </div>
+          ) : (
+            <div style={{ padding: '16px', textAlign: 'center', fontSize: '11.5px', color: 'var(--text-muted)' }}>
+              No active open positions to square off.
+            </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '6px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: 8, marginTop: 4 }}>
             <button
-              className="btn btn-ghost"
-              style={{ justifyContent: 'center', padding: '7px' }}
+              className="btn btn-outline"
+              style={{ justifyContent: 'center', padding: '8px' }}
               onClick={() => setPanicModalOpen(false)}
             >
               Cancel
@@ -65,15 +69,17 @@ export const PanicModal = () => {
               className="btn btn-danger"
               style={{
                 justifyContent: 'center',
-                padding: '7px',
+                padding: '8px',
                 fontWeight: 600,
-                background: 'var(--down)',
-                color: '#fff'
+                fontSize: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
               }}
               onClick={emergencySquareOffAll}
             >
-              <AlertTriangle size={12} />
-              Confirm — Exit All Now
+              <AlertTriangle size={13} />
+              Confirm — Square Off All
             </button>
           </div>
         </div>
@@ -84,38 +90,67 @@ export const PanicModal = () => {
 
 const P = {
   backdrop: {
-    position: 'fixed', inset: 0,
-    background: 'rgba(0,0,0,0.65)',
-    backdropFilter: 'blur(3px)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    position: 'fixed',
+    inset: 0,
+    backgroundColor: 'rgba(20, 23, 28, 0.45)',
+    backdropFilter: 'blur(2px)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     zIndex: 9000,
   },
   modal: {
-    width: '420px', maxWidth: '95vw',
-    background: 'var(--bg-panel)',
-    border: '1px solid var(--border-2)',
-    borderRadius: '4px',
+    width: '420px',
+    maxWidth: '94vw',
+    backgroundColor: 'var(--bg-surface)',
+    border: '1px solid var(--border-main)',
+    borderRadius: 'var(--radius)',
     overflow: 'hidden',
-    boxShadow: '0 16px 40px rgba(0,0,0,0.6)',
+    boxShadow: 'var(--shadow-modal)',
   },
   header: {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '8px 12px', background: 'rgba(244, 63, 94, 0.08)',
-    borderBottom: '1px solid rgba(244, 63, 94, 0.2)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '10px 16px',
+    borderBottom: '1px solid var(--border-main)',
+    backgroundColor: 'var(--bg-surface)',
   },
-  closeBtn: { background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex' },
-  body: { padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' },
+  closeBtn: {
+    background: 'none',
+    border: 'none',
+    color: 'var(--text-secondary)',
+    cursor: 'pointer',
+    padding: '4px',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  body: {
+    padding: '16px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 12,
+  },
   warnBox: {
-    padding: '8px 10px',
-    background: 'rgba(244, 63, 94, 0.05)',
-    border: '1px solid rgba(244, 63, 94, 0.2)',
-    borderRadius: '3px',
+    padding: '10px 12px',
+    backgroundColor: 'var(--loss-bg)',
+    border: '1px solid var(--border-light)',
+    borderRadius: 'var(--radius)',
   },
   positionList: {
-    background: 'var(--bg-surface)', border: '1px solid var(--border-1)',
-    borderRadius: '3px', padding: '6px 8px',
-    display: 'flex', flexDirection: 'column', gap: '4px',
-    maxHeight: '150px', overflowY: 'auto',
+    backgroundColor: 'var(--bg-secondary)',
+    border: '1px solid var(--border-main)',
+    borderRadius: 'var(--radius)',
+    padding: '8px 10px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+    maxHeight: '160px',
+    overflowY: 'auto',
   },
-  posRow: { display: 'flex', alignItems: 'center', gap: '8px' },
+  posRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+  },
 };

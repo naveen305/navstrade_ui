@@ -1,74 +1,83 @@
 import React from 'react';
 import { useTrading } from '../context/TradingContext';
 import {
-  LayoutDashboard, Layers, Cpu, ShieldCheck, Radar, Shield, CheckCircle2
+  LayoutDashboard,
+  Layers,
+  Cpu,
+  ShieldCheck,
+  Radar,
+  BookOpen,
+  Settings,
+  Shield
 } from 'lucide-react';
 
 const NAV = [
   { id: 'terminal',         icon: LayoutDashboard, label: 'Live Terminal' },
   { id: 'option_chain',     icon: Layers,          label: 'Option Chain' },
-  { id: 'strategy_builder', icon: Cpu,             label: 'Strategies' },
+  { id: 'strategies',       icon: Cpu,             label: 'Strategies' },
   { id: 'risk_engine',      icon: ShieldCheck,     label: 'Risk Engine' },
   { id: 'scanner',          icon: Radar,           label: 'F&O Scanner' },
+  { id: 'journal',          icon: BookOpen,        label: 'Journal' },
+  { id: 'settings',         icon: Settings,        label: 'Settings' },
 ];
 
 export const Sidebar = () => {
-  const { activeTab, setActiveTab, positions, riskRules, scannerSignals } = useTrading();
+  const { activeTab, setActiveTab, positions, riskRules, scannerSignals, journalTrades } = useTrading();
 
   return (
     <aside style={S.sidebar}>
       {/* Navigation list */}
       <nav style={S.nav}>
-        <div style={S.navHeader}>WORKSPACES</div>
+        <div style={S.navSectionTitle}>WORKSTATION</div>
         {NAV.map(({ id, icon: Icon, label }) => {
           const active = activeTab === id;
           let badge = null;
-          if (id === 'terminal' && positions.length > 0) badge = { text: positions.length, isPill: true };
-          if (id === 'risk_engine') badge = {
-            text: riskRules.killSwitchActive ? 'LOCKED' : 'ACTIVE',
-            color: riskRules.killSwitchActive ? 'var(--down)' : 'var(--text-secondary)'
-          };
-          if (id === 'scanner') badge = { text: scannerSignals.length, isPill: true };
+          if (id === 'terminal' && positions.length > 0) badge = positions.length;
+          if (id === 'scanner') badge = scannerSignals.length;
+          if (id === 'journal') badge = journalTrades.length;
 
           return (
             <button
               key={id}
+              type="button"
               style={{
                 ...S.navItem,
-                ...(active ? S.navActive : {}),
+                ...(active ? S.navItemActive : {}),
               }}
               onClick={() => setActiveTab(id)}
             >
               <Icon
                 size={14}
                 style={{
-                  color: active ? '#60a5fa' : 'var(--text-muted)',
-                  flexShrink: 0
+                  color: active ? 'var(--navy)' : 'var(--text-muted)',
+                  flexShrink: 0,
                 }}
               />
-              <span style={{
-                fontSize: '11.5px',
-                fontWeight: active ? 600 : 400,
-                color: active ? 'var(--text-white)' : 'var(--text-secondary)',
-                flex: 1,
-                textAlign: 'left',
-              }}>
+              <span
+                style={{
+                  fontSize: '12px',
+                  fontWeight: active ? 600 : 400,
+                  color: active ? 'var(--text-heading)' : 'var(--text-secondary)',
+                  flex: 1,
+                  textAlign: 'left',
+                }}
+              >
                 {label}
               </span>
-              {badge && (
+              {badge !== null && (
                 <span
-                  className="font-data"
+                  className="font-num"
                   style={{
-                    fontSize: '9.5px',
-                    fontWeight: 600,
-                    color: badge.color || 'var(--text-muted)',
-                    background: badge.isPill ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
-                    padding: badge.isPill ? '1px 5px' : '0',
-                    borderRadius: '2px',
-                    border: badge.isPill ? '1px solid var(--border-1)' : 'none',
+                    fontSize: '10px',
+                    fontWeight: 500,
+                    color: active ? 'var(--navy)' : 'var(--text-muted)',
+                    backgroundColor: active ? 'var(--navy-bg)' : 'var(--bg-surface)',
+                    padding: '1px 5px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border-subtle)',
                   }}
                 >
-                  {badge.text}
+                  {badge}
                 </span>
               )}
             </button>
@@ -76,29 +85,31 @@ export const Sidebar = () => {
         })}
       </nav>
 
-      {/* Institutional Execution Rules Footer */}
+      {/* Bottom Risk Discipline Summary Card */}
       <div style={S.footer}>
-        <div style={S.rulesCard}>
-          <div style={S.rulesHdr}>
+        <div style={S.disciplineCard}>
+          <div style={S.discHeader}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <span className="live-dot" style={{ width: 4, height: 4 }} />
-              <span style={S.rulesTitle}>RISK DISCIPLINE</span>
+              <Shield size={12} style={{ color: 'var(--profit)' }} />
+              <span style={S.discTitle}>RISK DISCIPLINE</span>
             </div>
-            <span style={{ fontSize: '9px', color: 'var(--up)', fontWeight: 600 }}>ENFORCED</span>
+            <span style={{ fontSize: '9px', fontWeight: 600, color: 'var(--profit)' }}>
+              ENFORCED
+            </span>
           </div>
 
-          <div style={S.rulesList}>
-            <div style={S.ruleRow}>
-              <span style={S.ruleLbl}>Cap Risk / Trade</span>
-              <span className="font-data" style={S.ruleVal}>{riskRules.maxCapitalRiskPct}% (Max)</span>
+          <div style={S.discMetrics}>
+            <div style={S.discRow}>
+              <span style={S.discLbl}>Cap / Trade</span>
+              <span className="font-num" style={S.discVal}>{riskRules.maxCapitalRiskPct}%</span>
             </div>
-            <div style={S.ruleRow}>
-              <span style={S.ruleLbl}>Max Open Pos</span>
-              <span className="font-data" style={S.ruleVal}>{positions.length} / {riskRules.maxOpenTrades}</span>
+            <div style={S.discRow}>
+              <span style={S.discLbl}>Open Positions</span>
+              <span className="font-num" style={S.discVal}>{positions.length} / {riskRules.maxOpenTrades}</span>
             </div>
-            <div style={S.ruleRow}>
-              <span style={S.ruleLbl}>Auto Trailing SL</span>
-              <span className="font-data" style={{ ...S.ruleVal, color: 'var(--up)' }}>Active (1:1.5)</span>
+            <div style={S.discRow}>
+              <span style={S.discLbl}>Trailing SL</span>
+              <span className="font-num" style={{ ...S.discVal, color: 'var(--profit)' }}>Auto (1:1.5)</span>
             </div>
           </div>
         </div>
@@ -111,8 +122,8 @@ const S = {
   sidebar: {
     width: 'var(--sidebar-w)',
     minWidth: 'var(--sidebar-w)',
-    background: 'var(--bg-sidebar)',
-    borderRight: '1px solid var(--border-1)',
+    backgroundColor: 'var(--bg-sidebar)',
+    borderRight: '1px solid var(--border-main)',
     display: 'flex',
     flexDirection: 'column',
     height: '100%',
@@ -126,7 +137,7 @@ const S = {
     gap: '2px',
     flex: 1,
   },
-  navHeader: {
+  navSectionTitle: {
     fontSize: '9px',
     fontWeight: 700,
     color: 'var(--text-muted)',
@@ -138,60 +149,58 @@ const S = {
     alignItems: 'center',
     gap: '8px',
     padding: '6px 8px',
-    borderRadius: '3px',
-    background: 'transparent',
+    borderRadius: 'var(--radius)',
+    backgroundColor: 'transparent',
     border: '1px solid transparent',
-    borderLeft: '2px solid transparent',
     cursor: 'pointer',
     width: '100%',
     transition: 'all 120ms ease',
   },
-  navActive: {
-    background: 'rgba(59, 130, 246, 0.08)',
-    borderLeft: '2px solid #3b82f6',
-    borderColor: 'var(--border-1)',
+  navItemActive: {
+    backgroundColor: 'var(--bg-card)',
+    borderColor: 'var(--border-main)',
   },
   footer: {
-    borderTop: '1px solid var(--border-1)',
+    borderTop: '1px solid var(--border-main)',
     padding: '8px',
   },
-  rulesCard: {
-    padding: '8px',
-    background: 'var(--bg-panel)',
-    border: '1px solid var(--border-1)',
-    borderRadius: '3px',
+  disciplineCard: {
+    padding: '8px 10px',
+    backgroundColor: 'var(--bg-card)',
+    border: '1px solid var(--border-main)',
+    borderRadius: 'var(--radius)',
   },
-  rulesHdr: {
+  discHeader: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: '6px',
     paddingBottom: '4px',
-    borderBottom: '1px solid var(--border-1)',
+    borderBottom: '1px solid var(--border-subtle)',
   },
-  rulesTitle: {
-    fontSize: '9px',
-    color: 'var(--text-secondary)',
+  discTitle: {
+    fontSize: '9.5px',
     fontWeight: 700,
-    letterSpacing: '0.06em',
+    color: 'var(--text-heading)',
+    letterSpacing: '0.04em',
   },
-  rulesList: {
+  discMetrics: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '4px',
+    gap: '3px',
   },
-  ruleRow: {
+  discRow: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  ruleLbl: {
+  discLbl: {
     fontSize: '10px',
     color: 'var(--text-muted)',
   },
-  ruleVal: {
-    fontSize: '10.5px',
-    color: 'var(--text-secondary)',
+  discVal: {
+    fontSize: '11px',
+    color: 'var(--text-primary)',
     fontWeight: 500,
   },
 };

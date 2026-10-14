@@ -5,7 +5,8 @@
   height: 100vh;
   width: 100vw;
   overflow: hidden;
-  background: var(--bg-base);
+  background-color: var(--bg-page);
+  color: var(--text-primary);
 }
 
 .app-body {
@@ -20,14 +21,35 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  background-color: var(--bg-page);
 }
 
-/* === Toast === */
+/* === Calm Full-Width Risk Limit Hit Banner === */
+.calm-risk-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background-color: #FDF2E9; /* Warm calm amber/brick warning */
+  border-bottom: 1px solid #F5C6A5;
+  color: #7A3E16;
+  font-size: 12.5px;
+  line-height: 1.4;
+  z-index: 90;
+  flex-shrink: 0;
+}
+html.dark .calm-risk-banner {
+  background-color: #2E211A;
+  border-bottom: 1px solid #5A3926;
+  color: #F4BA97;
+}
+
+/* === Toast Notification (Calm, Non-flashy) === */
 .toast-wrap {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  z-index: 9000;
+  z-index: 9999;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -36,21 +58,17 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 14px;
-  border-radius: 4px;
-  font-size: 12px;
+  padding: 9px 14px;
+  border-radius: var(--radius);
+  font-size: 12.5px;
   font-weight: 500;
-  background: var(--bg-panel-2);
-  border: 1px solid var(--border-2);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-main);
   color: var(--text-primary);
-  box-shadow: var(--shadow-md);
-  animation: toastIn 0.2s ease;
-  max-width: 400px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  max-width: 420px;
 }
-@keyframes toastIn {
-  from { transform: translateX(20px); opacity: 0; }
-  to   { transform: translateX(0);    opacity: 1; }
-}
-.toast-success { border-left: 3px solid var(--up); }
-.toast-danger  { border-left: 3px solid var(--down); }
-.toast-info    { border-left: 3px solid var(--accent); }
+.toast-success { border-left: 3px solid var(--profit); }
+.toast-danger  { border-left: 3px solid var(--loss); }
+.toast-warn    { border-left: 3px solid var(--warning); }
+.toast-info    { border-left: 3px solid var(--navy); }

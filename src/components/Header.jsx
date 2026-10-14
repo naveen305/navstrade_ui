@@ -1,16 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { useTrading } from '../context/TradingContext';
-import { ShieldAlert, AlertTriangle, Zap, CheckCircle2 } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, Sun, Moon, Lock, CheckCircle2, ChevronDown } from 'lucide-react';
+import { StatBadge } from './common/StatBadge';
 
 export const Header = () => {
   const {
+    theme, toggleTheme,
     tradingMode, setTradingMode,
     accountCapital, marginAvailable,
     totalNetPnl, riskRules,
-    setPanicModalOpen, showToast
+    setPanicModalOpen, showToast,
+    paperCriteria
   } = useTrading();
 
   const [now, setNow] = useState(new Date());
+  const [showCriteriaModal, setShowCriteriaModal] = useState(false);
+
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
@@ -29,70 +34,60 @@ export const Header = () => {
   const pnlPositive = totalNetPnl >= 0;
   const pnlPct = ((totalNetPnl / accountCapital) * 100).toFixed(2);
 
-  const toggleMode = () => {
-    if (tradingMode === 'PAPER') {
-      if (window.confirm('Switch to LIVE Upstox API execution? Real capital will be at risk.')) {
-        setTradingMode('LIVE_UPSTOX');
-        showToast('Switched to Live Upstox API Execution', 'info');
-      }
-    } else {
-      setTradingMode('PAPER');
-      showToast('Switched to Paper Trading Simulator', 'info');
-    }
-  };
-
   return (
     <header style={S.header}>
-      {/* ── Brand & Connectivity ── */}
+      {/* ── Brand, Status & Mode ── */}
       <div style={S.left}>
         <div style={S.brand}>
-          <div style={S.brandLogo}>
-            <span style={{ fontSize: '11px', fontWeight: 800, color: '#38bdf8', letterSpacing: '-0.05em' }}>N</span>
-            <span style={{ fontSize: '11px', fontWeight: 800, color: '#10b981', letterSpacing: '-0.05em' }}>T</span>
-          </div>
+          <div style={S.brandMonogram}>N</div>
           <div>
-            <div style={S.brandTitle}>NAVSTRADE</div>
-            <div style={S.brandSub}>INSTITUTIONAL F&O TERMINAL</div>
+            <div style={S.brandName}>NavsTrade</div>
+            <div style={S.brandSub}>OPTIONS WORKSTATION · NSE</div>
           </div>
         </div>
 
         <div style={S.divider} />
 
-        {/* Market Status */}
-        <div style={S.statusPill}>
-          <span className="live-dot" style={isMarketOpen ? {} : { background: 'var(--down)' }} />
-          <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>
-            NSE F&O · {isMarketOpen ? 'Live' : 'Closed'}
+        {/* Market Status & IST Clock */}
+        <div style={S.chip}>
+          <span
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              backgroundColor: isMarketOpen ? 'var(--profit)' : 'var(--text-muted)',
+              display: 'inline-block',
+            }}
+          />
+          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+            {isMarketOpen ? 'Market Open' : 'Market Closed'}
           </span>
-          <span className="font-data" style={S.clock}>{timeStr} IST</span>
+          <span className="font-num" style={S.clock}>
+            {timeStr} IST
+          </span>
         </div>
 
-        {/* Upstox API Pill */}
-        <button
-          type="button"
-          style={S.apiPill}
-          onClick={toggleMode}
-          title="Click to toggle Paper Simulation / Live API"
-        >
-          <span style={{
-            width: 6, height: 6, borderRadius: '50%',
-            background: tradingMode === 'LIVE_UPSTOX' ? 'var(--down)' : '#38bdf8'
-          }} />
-          <span style={{ fontSize: '10.5px', color: 'var(--text-secondary)' }}>API:</span>
-          <span className="font-data" style={{
-            fontSize: '10.5px', fontWeight: 600,
-            color: tradingMode === 'LIVE_UPSTOX' ? 'var(--down)' : 'var(--text-white)'
-          }}>
-            {tradingMode === 'LIVE_UPSTOX' ? 'UPSTOX LIVE' : 'PAPER SIM'}
+        {/* API Mode Badge */}
+        <div style={S.chip}>
+          <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>Mode:</span>
+          <span
+            className="font-num"
+            style={{
+              fontSize: '11px',
+              fontWeight: 600,
+              color: tradingMode === 'LIVE_UPSTOX' ? 'var(--loss)' : 'var(--navy)'
+            }}
+          >
+            {tradingMode === 'LIVE_UPSTOX' ? 'LIVE (UPSTOX)' : 'PAPER SIM'}
           </span>
-        </button>
+        </div>
       </div>
 
       {/* ── Center Telemetry Strip ── */}
       <div style={S.center}>
         <div style={S.telemetryItem}>
           <span style={S.telemetryLabel}>Capital</span>
-          <span className="font-data" style={S.telemetryVal}>
+          <span className="font-num num-fade" style={S.telemetryVal}>
             ₹{accountCapital.toLocaleString('en-IN')}
           </span>
         </div>
@@ -101,7 +96,7 @@ export const Header = () => {
 
         <div style={S.telemetryItem}>
           <span style={S.telemetryLabel}>Margin Available</span>
-          <span className="font-data" style={S.telemetryVal}>
+          <span className="font-num num-fade" style={S.telemetryVal}>
             ₹{marginAvailable.toLocaleString('en-IN')}
           </span>
         </div>
@@ -109,12 +104,12 @@ export const Header = () => {
         <div style={S.telemetrySep} />
 
         <div style={S.telemetryItem}>
-          <span style={S.telemetryLabel}>Day MTM P&L</span>
+          <span style={S.telemetryLabel}>Day P&L</span>
           <span
-            className="font-data"
+            className="font-num num-fade"
             style={{
               ...S.telemetryVal,
-              color: pnlPositive ? 'var(--up)' : 'var(--down)',
+              color: pnlPositive ? 'var(--profit)' : 'var(--loss)',
               fontWeight: 600,
             }}
           >
@@ -127,51 +122,95 @@ export const Header = () => {
 
         <div style={S.telemetrySep} />
 
-        <div style={{
-          ...S.telemetryItem,
-          ...(riskRules.killSwitchActive ? S.telemetryKill : {})
-        }}>
+        <div
+          style={{
+            ...S.telemetryItem,
+            ...(riskRules.killSwitchActive ? S.telemetryKill : {})
+          }}
+        >
           <span style={S.telemetryLabel}>
-            <ShieldAlert size={9} style={{ marginRight: 3, verticalAlign: 'middle', color: riskRules.killSwitchActive ? 'var(--down)' : 'var(--text-muted)' }} />
-            Kill Switch Guard
+            <ShieldAlert size={10} style={{ marginRight: 3, verticalAlign: 'middle', color: riskRules.killSwitchActive ? 'var(--loss)' : 'var(--text-muted)' }} />
+            Kill-Switch
           </span>
           <span
-            className="font-data"
+            className="font-num"
             style={{
               ...S.telemetryVal,
-              color: riskRules.killSwitchActive ? 'var(--down)' : 'var(--text-secondary)',
+              color: riskRules.killSwitchActive ? 'var(--loss)' : 'var(--text-secondary)',
               fontWeight: riskRules.killSwitchActive ? 700 : 500,
             }}
           >
-            {riskRules.killSwitchActive ? 'TRIPPED (TERMINAL LOCKED)' : `Armed · −₹${riskRules.maxDailyLoss.toLocaleString('en-IN')}`}
+            {riskRules.killSwitchActive ? 'TRIGGERED (HALT)' : `Armed (-₹${riskRules.maxDailyLoss.toLocaleString('en-IN')})`}
           </span>
         </div>
       </div>
 
       {/* ── Right Actions ── */}
       <div style={S.right}>
-        <button
-          className="btn btn-ghost btn-sm"
-          style={{ fontSize: '10.5px' }}
-          onClick={toggleMode}
-        >
-          {tradingMode === 'PAPER' ? '⏵ Go Live' : '⏸ Paper'}
-        </button>
+        {/* Go Live Button (Disabled until criteria met) */}
+        <div style={{ position: 'relative' }}>
+          <button
+            type="button"
+            className={`btn btn-outline btn-sm ${!paperCriteria.isMet ? 'btn-disabled' : ''}`}
+            onClick={() => setShowCriteriaModal(!showCriteriaModal)}
+            title="Go Live is gated until paper-trading discipline criteria are met"
+            style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
+          >
+            <Lock size={11} style={{ opacity: 0.7 }} />
+            <span>Go Live</span>
+            <span className="font-num" style={{ fontSize: '9.5px', opacity: 0.8 }}>
+              ({paperCriteria.completed}/{paperCriteria.required})
+            </span>
+          </button>
 
+          {/* Criteria Popover */}
+          {showCriteriaModal && (
+            <div style={S.criteriaPopover}>
+              <div style={S.criteriaHdr}>
+                <span style={{ fontWeight: 600, color: 'var(--text-heading)' }}>Live Trading Gate</span>
+                <button
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', color: 'var(--text-muted)' }}
+                  onClick={() => setShowCriteriaModal(false)}
+                >
+                  ✕
+                </button>
+              </div>
+              <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '8px', lineHeight: 1.35 }}>
+                To prevent emotional capital loss, live execution with Upstox API unlocks after verified discipline in Paper mode:
+              </p>
+              <div style={S.criteriaItem}>
+                <CheckCircle2 size={12} style={{ color: paperCriteria.completed >= paperCriteria.required ? 'var(--profit)' : 'var(--text-muted)' }} />
+                <span>Complete 20 paper trades with strict SL ({paperCriteria.completed}/20 done)</span>
+              </div>
+              <div style={S.criteriaItem}>
+                <CheckCircle2 size={12} style={{ color: 'var(--profit)' }} />
+                <span>Zero kill-switch breaches in past 5 sessions (0 breaches)</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Square Off All Outlined Red Button */}
         <button
-          className="btn btn-danger btn-sm"
-          style={{
-            fontWeight: 600,
-            fontSize: '10.5px',
-            background: 'rgba(244, 63, 94, 0.08)',
-            borderColor: 'rgba(244, 63, 94, 0.35)',
-            color: '#fb7185'
-          }}
+          type="button"
+          className="btn btn-outline-danger btn-sm"
+          style={{ fontWeight: 600 }}
           onClick={() => setPanicModalOpen(true)}
           title="Emergency square-off all active positions"
         >
           <AlertTriangle size={11} />
           Square Off All
+        </button>
+
+        {/* Theme Toggle (Light / Dark) */}
+        <button
+          type="button"
+          className="btn btn-outline btn-sm"
+          onClick={toggleTheme}
+          style={{ padding: '4px 7px' }}
+          title={`Switch to ${theme === 'light' ? 'Deep Slate Dark Mode' : 'Warm Off-White Light Mode'}`}
+        >
+          {theme === 'light' ? <Moon size={12} /> : <Sun size={12} />}
         </button>
       </div>
     </header>
@@ -184,8 +223,8 @@ const S = {
     alignItems: 'center',
     justifyContent: 'space-between',
     height: 'var(--header-h)',
-    background: 'var(--bg-header)',
-    borderBottom: '1px solid var(--border-1)',
+    backgroundColor: 'var(--bg-header)',
+    borderBottom: '1px solid var(--border-main)',
     padding: '0 12px',
     gap: '12px',
     zIndex: 100,
@@ -195,53 +234,44 @@ const S = {
   left: { display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 },
   right: { display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 },
   brand: { display: 'flex', alignItems: 'center', gap: '7px' },
-  brandLogo: {
-    width: 22, height: 22,
-    background: '#161d2a',
-    border: '1px solid #28354b',
-    borderRadius: '3px',
+  brandMonogram: {
+    width: '22px',
+    height: '22px',
+    backgroundColor: 'var(--navy)',
+    color: '#FFFFFF',
+    borderRadius: 'var(--radius-sm)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  brandTitle: {
-    fontSize: '12px',
+    fontSize: '11px',
     fontWeight: 700,
-    color: 'var(--text-white)',
-    letterSpacing: '0.04em',
-    lineHeight: 1.1,
+    fontFamily: 'var(--font-ui)',
+  },
+  brandName: {
+    fontSize: '12.5px',
+    fontWeight: 700,
+    color: 'var(--text-heading)',
+    letterSpacing: '-0.01em',
+    lineHeight: 1.15,
   },
   brandSub: {
     fontSize: '8px',
     color: 'var(--text-muted)',
-    letterSpacing: '0.08em',
+    letterSpacing: '0.06em',
     fontWeight: 600,
   },
-  divider: { width: 1, height: 16, background: 'var(--border-1)', margin: '0 2px' },
-  statusPill: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '5px',
-    padding: '3px 7px',
-    background: 'var(--bg-panel)',
-    border: '1px solid var(--border-1)',
-    borderRadius: '3px',
-    height: '24px',
-  },
-  clock: { fontSize: '10.5px', color: 'var(--text-secondary)', marginLeft: '3px' },
-  apiPill: {
+  divider: { width: 1, height: 16, backgroundColor: 'var(--border-main)', margin: '0 2px' },
+  chip: {
     display: 'flex',
     alignItems: 'center',
     gap: '5px',
     padding: '3px 8px',
-    background: 'var(--bg-panel)',
-    border: '1px solid var(--border-1)',
-    borderRadius: '3px',
+    backgroundColor: 'var(--bg-surface)',
+    border: '1px solid var(--border-main)',
+    borderRadius: 'var(--radius)',
     height: '24px',
-    cursor: 'pointer',
-    color: 'inherit',
-    transition: 'border-color 120ms ease',
   },
+  clock: { fontSize: '11px', color: 'var(--text-secondary)', marginLeft: '3px' },
 
   center: {
     display: 'flex',
@@ -249,9 +279,9 @@ const S = {
     flex: 1,
     justifyContent: 'center',
     maxWidth: '680px',
-    background: 'var(--bg-panel)',
-    border: '1px solid var(--border-1)',
-    borderRadius: '3px',
+    backgroundColor: 'var(--bg-surface)',
+    border: '1px solid var(--border-main)',
+    borderRadius: 'var(--radius)',
     height: '26px',
     padding: '0 6px',
     overflow: 'hidden',
@@ -264,19 +294,50 @@ const S = {
     height: '100%',
   },
   telemetryLabel: {
-    fontSize: '8.5px',
+    fontSize: '9px',
     fontWeight: 600,
     color: 'var(--text-muted)',
     textTransform: 'uppercase',
-    letterSpacing: '0.06em',
+    letterSpacing: '0.04em',
   },
   telemetryVal: {
-    fontSize: '11px',
+    fontSize: '11.5px',
     fontWeight: 500,
     color: 'var(--text-primary)',
   },
-  telemetrySep: { width: 1, height: 14, background: 'var(--border-1)' },
+  telemetrySep: { width: 1, height: 14, backgroundColor: 'var(--border-main)' },
   telemetryKill: {
-    background: 'rgba(244, 63, 94, 0.08)',
+    backgroundColor: 'var(--loss-bg)',
+  },
+
+  criteriaPopover: {
+    position: 'absolute',
+    top: '100%',
+    right: 0,
+    marginTop: '6px',
+    width: '280px',
+    backgroundColor: 'var(--bg-card)',
+    border: '1px solid var(--border-main)',
+    borderRadius: 'var(--radius)',
+    boxShadow: 'var(--shadow-modal)',
+    padding: '10px 12px',
+    zIndex: 200,
+  },
+  criteriaHdr: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    fontSize: '11.5px',
+    marginBottom: '6px',
+    borderBottom: '1px solid var(--border-subtle)',
+    paddingBottom: '4px',
+  },
+  criteriaItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    fontSize: '10.5px',
+    color: 'var(--text-secondary)',
+    marginBottom: '4px',
   },
 };

@@ -5,12 +5,17 @@ import {
   INITIAL_POSITIONS,
   INITIAL_RISK_RULES,
   STRATEGY_TEMPLATES,
-  SCANNER_SIGNALS
+  SCANNER_SIGNALS,
+  INITIAL_JOURNAL_TRADES,
+  WEEKLY_ANALYTICS
 } from '../data/mockMarketData';
 
 const TradingContext = createContext();
 
 export const TradingProvider = ({ children }) => {
+  // Theme: Light by default (as explicitly requested: warm off-white #F7F6F3 background)
+  const [theme, setTheme] = useState('light'); // 'light' | 'dark'
+
   // Navigation & Mode
   const [activeTab, setActiveTab] = useState('terminal');
   const [tradingMode, setTradingMode] = useState('PAPER'); // 'PAPER' | 'LIVE_UPSTOX'
@@ -21,26 +26,70 @@ export const TradingProvider = ({ children }) => {
   const [optionChain, setOptionChain] = useState(INITIAL_OPTION_CHAIN);
   const [positions, setPositions] = useState(INITIAL_POSITIONS);
   const [riskRules, setRiskRules] = useState(INITIAL_RISK_RULES);
+  const [strategyTemplates] = useState(STRATEGY_TEMPLATES);
+  const [scannerSignals] = useState(SCANNER_SIGNALS);
+  const [journalTrades, setJournalTrades] = useState(INITIAL_JOURNAL_TRADES);
+  const [weeklyAnalytics] = useState(WEEKLY_ANALYTICS);
+
+  // Modals & Banners
   const [orderModalOpen, setOrderModalOpen] = useState(false);
   const [orderModalData, setOrderModalData] = useState(null);
   const [panicModalOpen, setPanicModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+  const [riskBanner, setRiskBanner] = useState(null); // Calm full-width banner when limit hit
 
   // Capital State
   const [accountCapital, setAccountCapital] = useState(500000.00);
   const [marginAvailable, setMarginAvailable] = useState(418250.00);
 
+  // Criteria for Go Live
+  const paperCriteria = {
+    completed: weeklyAnalytics.paperTradesCompleted,
+    required: weeklyAnalytics.paperTradesRequired,
+    killSwitchBreaches: weeklyAnalytics.killSwitchBreaches,
+    isMet: weeklyAnalytics.paperTradesCompleted >= weeklyAnalytics.paperTradesRequired && weeklyAnalytics.killSwitchBreaches === 0
+  };
+
+  // Settings
+  const [settings, setSettings] = useState({
+    broker: 'Upstox v2 API',
+    clientId: '284910',
+    apiKey: 'ups_sec_9942a',
+    apiSecret: '••••••••••••••••',
+    redirectUri: 'https://127.0.0.1:5173/auth/callback',
+    webhookStatus: 'Connected (200 OK)',
+    soundEffects: false,
+    lockRulesUntilEOD: true,
+  });
+
   // Total Realtime P&L calculation
   const totalUnrealizedPnl = positions.reduce((acc, pos) => acc + (pos.pnl || 0), 0);
   const totalNetPnl = riskRules.dailyRealizedPnl + totalUnrealizedPnl;
 
-  // Real-time market tick simulator (institutional feel)
+  // Toggle Theme
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+  };
+
+  // Sync theme with HTML root class
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+      root.classList.remove('light');
+    } else {
+      root.classList.add('light');
+      root.classList.remove('dark');
+    }
+  }, [theme]);
+
+  // Real-time market tick simulator
   useEffect(() => {
     const interval = setInterval(() => {
       // 1. Tick watchlist slightly
       setWatchlist(prev =>
         prev.map(item => {
-          const delta = (Math.random() - 0.49) * (item.price * 0.0006);
+          const delta = (Math.random() - 0.49) * (item.price * 0.0005);
           const newPrice = +(item.price + delta).toFixed(2);
           const newChange = +(item.change + delta).toFixed(2);
           const newPct = +((newChange / (newPrice - newChange)) * 100).toFixed(2);
@@ -57,7 +106,7 @@ export const TradingProvider = ({ children }) => {
       // 2. Tick active positions
       setPositions(prev =>
         prev.map(pos => {
-          const tickDelta = (Math.random() - 0.48) * (pos.currentPrice * 0.002);
+          const tickDelta = (Math.random() - 0.48) * (pos.currentPrice * 0.0018);
           const newPrice = Math.max(0.05, +(pos.currentPrice + tickDelta).toFixed(2));
           const pnlDelta = (newPrice - pos.entryPrice) * pos.qty;
           const pnlPct = +(((newPrice - pos.entryPrice) / pos.entryPrice) * 100).toFixed(1);
@@ -75,8 +124,8 @@ export const TradingProvider = ({ children }) => {
       // 3. Tick Option Chain ATM strikes slightly
       setOptionChain(prev =>
         prev.map(row => {
-          const ceDelta = (Math.random() - 0.48) * 0.4;
-          const peDelta = (Math.random() - 0.52) * 0.4;
+          const ceDelta = (Math.random() - 0.48) * 0.35;
+          const peDelta = (Math.random() - 0.52) * 0.35;
           return {
             ...row,
             ce: {
@@ -92,7 +141,7 @@ export const TradingProvider = ({ children }) => {
           };
         })
       );
-    }, 1500);
+    }, 1800);
 
     return () => clearInterval(interval);
   }, []);
@@ -104,8 +153,12 @@ export const TradingProvider = ({ children }) => {
         ...prev,
         killSwitchActive: true
       }));
-      showToast('⚠️ KILL-SWITCH TRIGGERED: Max daily loss hit! All open positions squared off & terminal locked.', 'danger');
-      // Emergency square off all open positions
+      setRiskBanner({
+        type: 'KILL_SWITCH',
+        title: 'Daily Loss Limit Reached (-₹5,000)',
+        message: 'Order entry has been safely paused for this session to protect your capital. All open positions were closed per predefined discipline parameters.'
+      });
+      // Close all open positions calmly
       setPositions([]);
     }
   }, [totalNetPnl, riskRules.maxDailyLoss, riskRules.killSwitchActive]);
@@ -113,7 +166,7 @@ export const TradingProvider = ({ children }) => {
   // Toast Notification Helper
   const showToast = (message, type = 'info') => {
     setToastMessage({ message, type });
-    setTimeout(() => setToastMessage(null), 4000);
+    setTimeout(() => setToastMessage(null), 3500);
   };
 
   // Close a single position
@@ -126,6 +179,26 @@ export const TradingProvider = ({ children }) => {
       ...prev,
       dailyRealizedPnl: +(prev.dailyRealizedPnl + target.pnl).toFixed(2)
     }));
+
+    // Add to journal automatically
+    const newJournal = {
+      id: `TRD-${Date.now().toString().slice(-4)}`,
+      date: new Date().toISOString().split('T')[0],
+      time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+      symbol: target.symbol,
+      strategy: target.strategy,
+      side: target.qty > 0 ? 'BUY' : 'SELL',
+      qty: Math.abs(target.qty),
+      entryPrice: target.entryPrice,
+      exitPrice: target.currentPrice,
+      pnl: target.pnl,
+      rMultiple: `${target.pnl >= 0 ? '+' : ''}${(target.pnl / 1500).toFixed(1)}R`,
+      reason: 'Systematic exit via Terminal Close button.',
+      emotion: 'Calm',
+      status: 'CLOSED'
+    };
+    setJournalTrades(prev => [newJournal, ...prev]);
+
     showToast(`Closed ${target.symbol} with P&L: ₹${target.pnl.toLocaleString('en-IN')}`, target.pnl >= 0 ? 'success' : 'danger');
   };
 
@@ -139,25 +212,31 @@ export const TradingProvider = ({ children }) => {
       panicSquareOffConfirmed: true
     }));
     setPanicModalOpen(false);
-    showToast('🚨 EMERGENCY SQUARE-OFF EXECUTED: All positions closed and pending orders cancelled.', 'danger');
+    showToast(`Emergency square-off executed. Realized P&L: ₹${totalPnlClosing.toFixed(2)}`, 'info');
   };
 
-  // Open Order Placement modal
-  const openOrderTicket = (prefillData = {}) => {
+  // Open Order Ticket Modal
+  const openOrderTicket = (data) => {
     if (riskRules.killSwitchActive) {
-      showToast('❌ Order Rejected: Kill Switch is active for the day!', 'danger');
+      showToast('Order entry is currently paused: Daily loss limit active.', 'warn');
       return;
     }
-    setOrderModalData(prefillData);
+    setOrderModalData(data);
     setOrderModalOpen(true);
   };
 
-  // Submit Order from Modal
+  // Submit Order
   const submitOrder = (order) => {
+    // Check max open positions
+    if (positions.length >= riskRules.maxOpenTrades) {
+      alert(`Max open position limit (${riskRules.maxOpenTrades}) reached. Close an existing position first to manage risk.`);
+      return;
+    }
+
     const newPos = {
-      id: `POS-${Math.floor(100 + Math.random() * 900)}`,
+      id: `POS-${Date.now().toString().slice(-3)}`,
       symbol: order.symbol,
-      strategy: order.strategy || 'Manual Order',
+      strategy: order.strategy || 'Manual Trade',
       type: order.action,
       qty: order.action === 'BUY' ? order.qty : -order.qty,
       lotSize: order.lotSize,
@@ -165,58 +244,84 @@ export const TradingProvider = ({ children }) => {
       currentPrice: order.price,
       sl: order.sl,
       target: order.target,
-      trailingSlActive: order.trailingSlActive || true,
+      trailingSlActive: order.trailingSlActive,
       trailingSlStep: 2.0,
       pnl: 0,
       pnlPct: 0,
       delta: 0.50,
-      theta: -18.5,
-      vega: 14.2,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      theta: -18.0,
+      vega: 12.0,
+      time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
     };
 
     setPositions(prev => [newPos, ...prev]);
+    setMarginAvailable(prev => Math.max(0, prev - (order.price * order.qty)));
     setOrderModalOpen(false);
-    showToast(`✅ Order Executed: ${order.action} ${order.qty}x ${order.symbol} @ ₹${order.price}`, 'success');
+    showToast(`Order transmitted to ${tradingMode === 'PAPER' ? 'Simulator' : 'Upstox'}: ${order.action} ${order.symbol}`, 'success');
   };
 
-  // Update Risk Rules
+  // Trigger Kill Switch (Calm Risk Limit Hit)
+  const triggerKillSwitch = (reason = 'Daily loss limit reached (-₹5,000.00).') => {
+    setRiskRules(prev => ({
+      ...prev,
+      killSwitchActive: true
+    }));
+    setRiskBanner({
+      message: `${reason} In accordance with institutional risk discipline, order entry is calmly paused for the remainder of today's session. Capital preservation protocol engaged.`,
+      type: 'limit_hit'
+    });
+    showToast('Risk discipline gate engaged: Daily limit reached. Order entry paused.', 'warn');
+  };
+
+  const clearRiskBanner = () => {
+    setRiskRules(prev => ({
+      ...prev,
+      killSwitchActive: false
+    }));
+    setRiskBanner(null);
+    showToast('Risk limit status reset.', 'info');
+  };
+
+  // Update Risk Engine Settings
   const updateRiskSettings = (newSettings) => {
-    setRiskRules(prev => ({ ...prev, ...newSettings }));
-    showToast('🛡️ Risk Guard & Kill Switch rules updated successfully!', 'success');
+    setRiskRules(prev => ({
+      ...prev,
+      ...newSettings
+    }));
   };
 
   return (
     <TradingContext.Provider
       value={{
-        activeTab,
-        setActiveTab,
-        tradingMode,
-        setTradingMode,
-        selectedSymbol,
-        setSelectedSymbol,
+        theme, setTheme, toggleTheme,
+        activeTab, setActiveTab,
+        tradingMode, setTradingMode,
+        selectedSymbol, setSelectedSymbol,
         watchlist,
         optionChain,
         positions,
         riskRules,
-        accountCapital,
+        strategyTemplates,
+        scannerSignals,
+        journalTrades, setJournalTrades,
+        weeklyAnalytics,
+        paperCriteria,
+        settings, setSettings,
+        orderModalOpen, setOrderModalOpen,
+        orderModalData, openOrderTicket,
+        panicModalOpen, setPanicModalOpen,
+        toastMessage, showToast,
+        riskBanner, setRiskBanner,
+        accountCapital, setAccountCapital,
         marginAvailable,
         totalUnrealizedPnl,
         totalNetPnl,
-        orderModalOpen,
-        setOrderModalOpen,
-        orderModalData,
-        panicModalOpen,
-        setPanicModalOpen,
-        toastMessage,
-        showToast,
         closePosition,
         emergencySquareOffAll,
-        openOrderTicket,
         submitOrder,
         updateRiskSettings,
-        strategyTemplates: STRATEGY_TEMPLATES,
-        scannerSignals: SCANNER_SIGNALS
+        triggerKillSwitch,
+        clearRiskBanner,
       }}
     >
       {children}
@@ -224,4 +329,8 @@ export const TradingProvider = ({ children }) => {
   );
 };
 
-export const useTrading = () => useContext(TradingContext);
+export const useTrading = () => {
+  const context = useContext(TradingContext);
+  if (!context) throw new Error('useTrading must be used within TradingProvider');
+  return context;
+};

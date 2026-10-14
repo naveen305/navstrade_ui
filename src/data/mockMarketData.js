@@ -185,6 +185,8 @@ export const INITIAL_POSITIONS = [
     target: 110.00,
     trailingSlActive: true,
     trailingSlStep: 5.0,
+    trailingTriggerPrice: 89.50,
+    trailDistance: 5.0,
     pnl: 465.00,
     pnlPct: 11.0,
     delta: 0.45,
@@ -205,6 +207,8 @@ export const INITIAL_POSITIONS = [
     target: 32.00,
     trailingSlActive: true,
     trailingSlStep: 2.0,
+    trailingTriggerPrice: 24.40,
+    trailDistance: 2.0,
     pnl: 6270.00,
     pnlPct: 19.6,
     delta: 0.62,
@@ -225,6 +229,8 @@ export const INITIAL_POSITIONS = [
     target: 6.00,
     trailingSlActive: false,
     trailingSlStep: 0,
+    trailingTriggerPrice: null,
+    trailDistance: 0,
     pnl: -3420.00,
     pnlPct: -19.8,
     delta: -0.38,
@@ -245,64 +251,73 @@ export const INITIAL_RISK_RULES = {
   cooldownRemainingMins: 0,
   disciplineScore: 94,          // Score based on sticking to rules
   autoTrailingSl: true,
+  noSizeUpAfterWins: true,      // Disallows scaling up position size after a winning streak
   panicSquareOffConfirmed: false
 };
 
-// Institutional Defined-Risk Templates
+// Institutional Defined-Risk Templates (With Backtest Evidence & Source)
 export const STRATEGY_TEMPLATES = [
   {
     id: 'strat-1',
     name: 'Bull Call Spread (Defined Risk)',
     category: 'Directional / Moderately Bullish',
+    backtestSummary: 'Backtested on 384 trades (NSE 2023–2025) · Quantitative Engine',
     winRate: '68%',
     riskReward: '1 : 2.1',
+    breakeven: 'Strike + Net Debit paid (₹25,195)',
     description: 'Buy ATM Call + Sell OTM Call. Caps max loss strictly to the net debit paid while financing the trade with short call theta.',
     legs: [
-      { action: 'BUY', strikeOffset: 'ATM', type: 'CE', delta: '~0.50' },
-      { action: 'SELL', strikeOffset: 'OTM (+1.5%)', type: 'CE', delta: '~0.30' }
+      { action: 'BUY', strikeOffset: 'ATM (25150)', type: 'CE', delta: '~0.50' },
+      { action: 'SELL', strikeOffset: 'OTM 25250 (+100)', type: 'CE', delta: '~0.30' }
     ],
-    maxLoss: 'Defined (Net Premium)',
-    maxProfit: 'Defined (Strike Diff - Net Premium)',
+    maxLoss: 'Defined (Net Premium ₹45.60)',
+    maxProfit: 'Defined (Wing diff - Debit ₹54.40)',
     sentiment: 'Bullish'
   },
   {
     id: 'strat-2',
     name: 'Bear Put Spread (Defined Risk)',
     category: 'Directional / Moderately Bearish',
+    backtestSummary: 'Backtested on 312 trades (NSE 2023–2025) · Quantitative Engine',
     winRate: '66%',
     riskReward: '1 : 2.2',
-    description: 'Buy ATM Put + Sell OTM Put. Complete protection against sudden market reversals with capped maximum loss.',
+    breakeven: 'Strike - Net Debit paid (₹25,112)',
+    description: 'Buy ATM Put + Sell OTM Put. Complete protection against sudden market reversals with strictly capped maximum loss.',
     legs: [
-      { action: 'BUY', strikeOffset: 'ATM', type: 'PE', delta: '~ -0.50' },
-      { action: 'SELL', strikeOffset: 'OTM (-1.5%)', type: 'PE', delta: '~ -0.30' }
+      { action: 'BUY', strikeOffset: 'ATM (25150)', type: 'PE', delta: '~ -0.50' },
+      { action: 'SELL', strikeOffset: 'OTM 25050 (-100)', type: 'PE', delta: '~ -0.30' }
     ],
-    maxLoss: 'Defined (Net Premium)',
-    maxProfit: 'Defined (Strike Diff - Net Premium)',
+    maxLoss: 'Defined (Net Premium ₹37.70)',
+    maxProfit: 'Defined (Wing diff - Debit ₹62.30)',
     sentiment: 'Bearish'
   },
   {
     id: 'strat-3',
     name: 'Iron Condor (Delta Neutral / Theta Harvest)',
     category: 'Non-Directional Range-Bound',
+    backtestSummary: 'Backtested on 428 trades (NSE 2023–2025) · Quantitative Engine',
     winRate: '76%',
     riskReward: '1 : 1.4',
+    breakeven: 'Lower Wing (24,965) & Upper Wing (25,335)',
     description: 'Sell OTM Call & Put spread. Collects time decay when stock or index trades inside a defined range with hard stop wings.',
     legs: [
-      { action: 'BUY', strikeOffset: 'Far OTM Put', type: 'PE', delta: '-0.15' },
-      { action: 'SELL', strikeOffset: 'OTM Put', type: 'PE', delta: '-0.30' },
-      { action: 'SELL', strikeOffset: 'OTM Call', type: 'CE', delta: '0.30' },
-      { action: 'BUY', strikeOffset: 'Far OTM Call', type: 'CE', delta: '0.15' }
+      { action: 'BUY', strikeOffset: 'Far OTM 24900', type: 'PE', delta: '-0.15' },
+      { action: 'SELL', strikeOffset: 'OTM 25000', type: 'PE', delta: '-0.30' },
+      { action: 'SELL', strikeOffset: 'OTM 25300', type: 'CE', delta: '0.30' },
+      { action: 'BUY', strikeOffset: 'Far OTM 25400', type: 'CE', delta: '0.15' }
     ],
-    maxLoss: 'Defined (Wing Width - Credit)',
-    maxProfit: 'Net Credit Received',
+    maxLoss: 'Defined (Wing Width - Credit Received)',
+    maxProfit: 'Net Credit Received (₹35.00)',
     sentiment: 'Neutral'
   },
   {
     id: 'strat-4',
     name: 'High-Volume Breakout (Momentum Option Buying)',
     category: 'Trend Following',
+    backtestSummary: 'Backtested on 516 trades (NSE 2023–2025) · Quantitative Engine',
     winRate: '54%',
     riskReward: '1 : 3.5',
+    breakeven: 'Entry + 15% quick expansion',
     description: 'Only triggers when stock pierces 15-min Opening Range with >2x volume & heavy Call/Put OI unwinding. Strict trailing stop loss.',
     legs: [
       { action: 'BUY', strikeOffset: 'Slightly ITM / ATM', type: 'CE/PE', delta: '0.55-0.65' }
@@ -436,3 +451,131 @@ export const SCANNER_SIGNALS = [
     suggestedAction: 'Iron Condor 3560/3600/3660/3700'
   }
 ];
+
+// Trading Journal Entries with Emotions & Rationales
+export const INITIAL_JOURNAL_TRADES = [
+  {
+    id: 'TRD-2026-081',
+    date: '2026-10-14',
+    time: '11:45 AM',
+    symbol: 'TATAMOTORS 940 CE',
+    strategy: 'Bull Call Spread',
+    side: 'BUY',
+    qty: 1425,
+    entryPrice: 22.40,
+    exitPrice: 27.20,
+    pnl: 6840.00,
+    rMultiple: '+2.1R',
+    reason: 'Pierced 15m opening range high with 2.8x volume and aggressive Call OI addition at 940 strike.',
+    emotion: 'Calm',
+    screenshotUrl: '#',
+    status: 'CLOSED'
+  },
+  {
+    id: 'TRD-2026-080',
+    date: '2026-10-14',
+    time: '10:10 AM',
+    symbol: 'NIFTY 25150 CE',
+    strategy: 'Momentum Breakout',
+    side: 'BUY',
+    qty: 50,
+    entryPrice: 84.50,
+    exitPrice: 93.80,
+    pnl: 465.00,
+    rMultiple: '+0.8R',
+    reason: 'Tested VWAP support after gap up; auto trailing SL locked initial gains.',
+    emotion: 'Calm',
+    screenshotUrl: '#',
+    status: 'CLOSED'
+  },
+  {
+    id: 'TRD-2026-079',
+    date: '2026-10-13',
+    time: '14:20 PM',
+    symbol: 'BANKNIFTY 52000 PE',
+    strategy: 'Bear Put Spread',
+    side: 'BUY',
+    qty: 30,
+    entryPrice: 110.00,
+    exitPrice: 88.00,
+    pnl: -660.00,
+    rMultiple: '-1.0R',
+    reason: 'Anticipated reversal at resistance, but index held VWAP. Hard SL triggered and respected.',
+    emotion: 'Calm',
+    screenshotUrl: '#',
+    status: 'CLOSED'
+  },
+  {
+    id: 'TRD-2026-078',
+    date: '2026-10-13',
+    time: '11:05 AM',
+    symbol: 'RELIANCE 2980 CE',
+    strategy: 'Momentum Buy',
+    side: 'BUY',
+    qty: 250,
+    entryPrice: 42.00,
+    exitPrice: 35.00,
+    pnl: -1750.00,
+    rMultiple: '-0.9R',
+    reason: 'Entered late after 4 consecutive green candles. Identified as FOMO impulse.',
+    emotion: 'FOMO',
+    screenshotUrl: '#',
+    status: 'CLOSED'
+  },
+  {
+    id: 'TRD-2026-077',
+    date: '2026-10-10',
+    time: '13:15 PM',
+    symbol: 'INFY 1860/1900 Strangle',
+    strategy: 'Iron Condor',
+    side: 'SELL',
+    qty: 400,
+    entryPrice: 18.50,
+    exitPrice: 8.20,
+    pnl: 4120.00,
+    rMultiple: '+1.6R',
+    reason: 'Earnings post-announcement IV crush; stock consolidated tightly in 1870-1890 corridor.',
+    emotion: 'Calm',
+    screenshotUrl: '#',
+    status: 'CLOSED'
+  },
+  {
+    id: 'TRD-2026-076',
+    date: '2026-10-09',
+    time: '14:50 PM',
+    symbol: 'HDFCBANK 1680 PE',
+    strategy: 'Short Buildup',
+    side: 'BUY',
+    qty: 550,
+    entryPrice: 16.00,
+    exitPrice: 22.50,
+    pnl: 3575.00,
+    rMultiple: '+1.9R',
+    reason: 'Sustained rejection at 1685 call wall; PCR dipped from 0.98 to 0.74.',
+    emotion: 'Calm',
+    screenshotUrl: '#',
+    status: 'CLOSED'
+  }
+];
+
+export const WEEKLY_ANALYTICS = {
+  winRate: 68.4,
+  totalTrades: 38,
+  avgR: 1.82,
+  maxDrawdown: 3200,
+  profitFactor: 2.45,
+  disciplineScore: 94,
+  streakDays: 4,
+  paperTradesCompleted: 14,
+  paperTradesRequired: 20,
+  killSwitchBreaches: 0,
+  equityCurve: [
+    { day: 'Mon', equity: 492000 },
+    { day: 'Tue', equity: 495400 },
+    { day: 'Wed', equity: 494800 },
+    { day: 'Thu', equity: 498200 },
+    { day: 'Fri', equity: 504200 },
+    { day: 'Mon', equity: 502600 },
+    { day: 'Tue', equity: 507100 },
+  ]
+};

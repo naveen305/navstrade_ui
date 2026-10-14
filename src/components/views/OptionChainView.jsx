@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTrading } from '../../context/TradingContext';
-import { ArrowUpRight, ArrowDownRight, Info } from 'lucide-react';
+import { StatBadge } from '../common/StatBadge';
 
 export const OptionChainView = () => {
   const { optionChain, selectedSymbol, openOrderTicket } = useTrading();
@@ -28,24 +28,24 @@ export const OptionChainView = () => {
       <div style={S.summaryBar}>
         <div style={S.summaryLeft}>
           <span style={S.chainTitle}>{selectedSymbol.symbol} · Option Chain</span>
-          <span className="tag tag-neutral">WEEKLY EXPIRY</span>
+          <StatBadge variant="neutral">WEEKLY EXPIRY</StatBadge>
           <div style={S.spotPill}>
-            <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>SPOT</span>
-            <span className="font-data" style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-white)' }}>
+            <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>SPOT</span>
+            <span className="font-num" style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-heading)' }}>
               ₹{selectedSymbol.price?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
             </span>
           </div>
         </div>
 
-        {/* Telemetry Metrics */}
+        {/* Telemetry Metrics: PCR, Max Pain, Total OI, IV Rank */}
         <div style={S.summaryMetrics}>
           <div style={S.metricCard}>
             <span style={S.metricLbl}>Put / Call Ratio (PCR)</span>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-              <span className="font-data" style={{ fontSize: '12.5px', fontWeight: 600, color: Number(pcr) >= 1 ? 'var(--up)' : 'var(--down)' }}>
+              <span className="font-num" style={{ fontSize: '12.5px', fontWeight: 600, color: Number(pcr) >= 1 ? 'var(--profit)' : 'var(--loss)' }}>
                 {pcr}
               </span>
-              <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>
+              <span style={{ fontSize: '9.5px', color: 'var(--text-muted)' }}>
                 {Number(pcr) >= 1 ? 'Bullish' : 'Bearish'}
               </span>
             </div>
@@ -53,7 +53,7 @@ export const OptionChainView = () => {
 
           <div style={S.metricCard}>
             <span style={S.metricLbl}>Max Pain Strike</span>
-            <span className="font-data" style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-white)' }}>
+            <span className="font-num" style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-heading)' }}>
               {selectedSymbol.maxPain}
             </span>
           </div>
@@ -61,13 +61,13 @@ export const OptionChainView = () => {
           <div style={S.metricCard}>
             <span style={S.metricLbl}>Total Call vs Put OI</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span className="font-data" style={{ fontSize: '11px', color: 'var(--up)', fontWeight: 600 }}>
+              <span className="font-num" style={{ fontSize: '11px', color: 'var(--profit)', fontWeight: 600 }}>
                 {(totalCallOI / 100000).toFixed(1)}L
               </span>
               <div style={S.oiRatioTrack}>
                 <div style={{ ...S.oiRatioFill, width: `${(totalCallOI / (totalCallOI + totalPutOI)) * 100}%` }} />
               </div>
-              <span className="font-data" style={{ fontSize: '11px', color: 'var(--down)', fontWeight: 600 }}>
+              <span className="font-num" style={{ fontSize: '11px', color: 'var(--loss)', fontWeight: 600 }}>
                 {(totalPutOI / 100000).toFixed(1)}L
               </span>
             </div>
@@ -75,42 +75,42 @@ export const OptionChainView = () => {
 
           <div style={S.metricCard}>
             <span style={S.metricLbl}>IV Rank</span>
-            <span className="font-data" style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-white)' }}>
+            <span className="font-num" style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text-heading)' }}>
               {selectedSymbol.iv}%
             </span>
           </div>
         </div>
       </div>
 
-      {/* ── Dense Option Chain Table ── */}
+      {/* ── Option Chain Table (Calls | Strike | Puts) ── */}
       <div style={S.tableWrap}>
-        <table style={S.table}>
+        <table className="calm-table">
           <thead>
-            {/* Super-Header */}
+            {/* Super Header Row */}
             <tr>
               <th colSpan={7} style={S.thCallSuper}>CALLS (CE)</th>
               <th style={S.thStrikeSuper}>STRIKE</th>
               <th colSpan={7} style={S.thPutSuper}>PUTS (PE)</th>
             </tr>
-            {/* Column Headers */}
+            {/* Column Labels */}
             <tr>
-              <th style={{ ...S.th, textAlign: 'left', width: '70px' }}>OI Bar</th>
-              <th style={{ ...S.th, textAlign: 'right' }}>OI (L)</th>
-              <th style={{ ...S.th, textAlign: 'right' }}>Chg (OI)</th>
-              <th style={{ ...S.th, textAlign: 'right' }}>IV %</th>
-              <th style={{ ...S.th, textAlign: 'right' }}>Delta</th>
-              <th style={{ ...S.th, textAlign: 'right' }}>Chg ₹</th>
-              <th style={{ ...S.th, textAlign: 'right', borderRight: '1px solid var(--border-2)' }}>LTP ₹</th>
+              <th style={{ textAlign: 'left', width: '70px' }}>OI Depth</th>
+              <th style={{ textAlign: 'right' }}>OI (L)</th>
+              <th style={{ textAlign: 'right' }}>Chg (OI)</th>
+              <th style={{ textAlign: 'right' }}>IV %</th>
+              <th style={{ textAlign: 'right' }}>Delta</th>
+              <th style={{ textAlign: 'right' }}>Chg ₹</th>
+              <th style={{ textAlign: 'right', borderRight: '1px solid var(--border-main)' }}>LTP ₹</th>
 
               <th style={S.thStrike}>Strike</th>
 
-              <th style={{ ...S.th, textAlign: 'left', borderLeft: '1px solid var(--border-2)' }}>LTP ₹</th>
-              <th style={{ ...S.th, textAlign: 'right' }}>Chg ₹</th>
-              <th style={{ ...S.th, textAlign: 'right' }}>Delta</th>
-              <th style={{ ...S.th, textAlign: 'right' }}>IV %</th>
-              <th style={{ ...S.th, textAlign: 'right' }}>Chg (OI)</th>
-              <th style={{ ...S.th, textAlign: 'right' }}>OI (L)</th>
-              <th style={{ ...S.th, textAlign: 'right', width: '70px' }}>OI Bar</th>
+              <th style={{ textAlign: 'left', borderLeft: '1px solid var(--border-main)' }}>LTP ₹</th>
+              <th style={{ textAlign: 'right' }}>Chg ₹</th>
+              <th style={{ textAlign: 'right' }}>Delta</th>
+              <th style={{ textAlign: 'right' }}>IV %</th>
+              <th style={{ textAlign: 'right' }}>Chg (OI)</th>
+              <th style={{ textAlign: 'right' }}>OI (L)</th>
+              <th style={{ textAlign: 'right', width: '70px' }}>OI Depth</th>
             </tr>
           </thead>
 
@@ -127,54 +127,57 @@ export const OptionChainView = () => {
                   onMouseEnter={() => setHoveredStrike(row.strike)}
                   onMouseLeave={() => setHoveredStrike(null)}
                   style={{
-                    background: isATM ? 'rgba(59, 130, 246, 0.06)' : isHovered ? 'var(--bg-row-hover)' : 'transparent',
-                    borderTop: isATM ? '1px solid rgba(59, 130, 246, 0.3)' : undefined,
-                    borderBottom: isATM ? '1px solid rgba(59, 130, 246, 0.3)' : undefined,
+                    backgroundColor: isATM
+                      ? 'var(--navy-bg)'
+                      : isHovered
+                      ? 'var(--bg-surface-hover)'
+                      : 'transparent',
+                    borderTop: isATM ? '1px solid var(--navy-border)' : undefined,
+                    borderBottom: isATM ? '1px solid var(--navy-border)' : undefined,
                   }}
                 >
-                  {/* CE: OI Bar */}
-                  <td style={{ ...S.td, background: itmCE ? 'rgba(16, 185, 129, 0.025)' : undefined }}>
+                  {/* CE: OI Depth Bar */}
+                  <td style={{ background: itmCE ? 'var(--profit-bg)' : undefined }}>
                     <div style={S.oiBarTrack}>
-                      <div style={{ ...S.oiBarFill, width: `${(row.ce.oi / maxOI) * 100}%`, background: 'var(--up)' }} />
+                      <div style={{ ...S.oiBarFill, width: `${(row.ce.oi / maxOI) * 100}%`, backgroundColor: 'var(--profit)' }} />
                     </div>
                   </td>
 
                   {/* CE: OI */}
-                  <td className="font-data" style={{ ...S.td, textAlign: 'right', background: itmCE ? 'rgba(16, 185, 129, 0.025)' : undefined }}>
+                  <td className="font-num" style={{ textAlign: 'right', background: itmCE ? 'var(--profit-bg)' : undefined }}>
                     {(row.ce.oi / 100000).toFixed(1)}
                   </td>
 
                   {/* CE: OI Change */}
-                  <td className="font-data" style={{ ...S.td, textAlign: 'right', color: row.ce.oiChange >= 0 ? 'var(--up)' : 'var(--down)', background: itmCE ? 'rgba(16, 185, 129, 0.025)' : undefined }}>
+                  <td className="font-num" style={{ textAlign: 'right', color: row.ce.oiChange >= 0 ? 'var(--profit)' : 'var(--loss)', background: itmCE ? 'var(--profit-bg)' : undefined }}>
                     {row.ce.oiChange >= 0 ? '+' : ''}{(row.ce.oiChange / 1000).toFixed(0)}k
                   </td>
 
                   {/* CE: IV */}
-                  <td className="font-data" style={{ ...S.td, textAlign: 'right', color: 'var(--text-muted)', background: itmCE ? 'rgba(16, 185, 129, 0.025)' : undefined }}>
+                  <td className="font-num" style={{ textAlign: 'right', color: 'var(--text-muted)', background: itmCE ? 'var(--profit-bg)' : undefined }}>
                     {row.ce.iv}%
                   </td>
 
                   {/* CE: Delta */}
-                  <td className="font-data" style={{ ...S.td, textAlign: 'right', color: 'var(--text-secondary)', background: itmCE ? 'rgba(16, 185, 129, 0.025)' : undefined }}>
+                  <td className="font-num" style={{ textAlign: 'right', color: 'var(--text-secondary)', background: itmCE ? 'var(--profit-bg)' : undefined }}>
                     {row.ce.delta}
                   </td>
 
                   {/* CE: Price Change */}
-                  <td className="font-data" style={{ ...S.td, textAlign: 'right', color: row.ce.change >= 0 ? 'var(--up)' : 'var(--down)', background: itmCE ? 'rgba(16, 185, 129, 0.025)' : undefined }}>
+                  <td className="font-num num-fade" style={{ textAlign: 'right', color: row.ce.change >= 0 ? 'var(--profit)' : 'var(--loss)', background: itmCE ? 'var(--profit-bg)' : undefined }}>
                     {row.ce.change >= 0 ? '+' : ''}{row.ce.change.toFixed(1)}
                   </td>
 
                   {/* CE: LTP (Clickable) */}
                   <td
-                    className="font-data"
+                    className="font-num num-fade"
                     style={{
-                      ...S.td,
                       textAlign: 'right',
                       fontWeight: 600,
-                      color: 'var(--text-white)',
+                      color: 'var(--text-heading)',
                       cursor: 'pointer',
-                      borderRight: '1px solid var(--border-2)',
-                      background: itmCE ? 'rgba(16, 185, 129, 0.04)' : undefined
+                      borderRight: '1px solid var(--border-main)',
+                      background: itmCE ? 'var(--profit-bg)' : undefined
                     }}
                     onClick={() => openOrderTicket(makeOrder(row, 'CE', 'BUY'))}
                     title="Click to place Buy order for this Call strike"
@@ -184,31 +187,45 @@ export const OptionChainView = () => {
 
                   {/* ── STRIKE PIN ── */}
                   <td
-                    className="font-data"
+                    className="font-num"
                     style={{
-                      ...S.td,
                       textAlign: 'center',
                       fontWeight: 700,
-                      fontSize: '11.5px',
-                      background: isATM ? 'rgba(59, 130, 246, 0.12)' : 'var(--bg-surface)',
-                      color: isATM ? '#60a5fa' : 'var(--text-white)',
+                      fontSize: '12px',
+                      backgroundColor: isATM ? 'var(--navy-bg)' : 'var(--bg-surface)',
+                      color: isATM ? 'var(--navy)' : 'var(--text-heading)',
+                      borderRight: '1px solid var(--border-main)',
+                      borderLeft: '1px solid var(--border-main)',
                     }}
                   >
                     {row.strike}
-                    {isATM && <span style={S.atmBadge}>ATM</span>}
+                    {isATM && (
+                      <span
+                        style={{
+                          fontSize: '8.5px',
+                          fontWeight: 700,
+                          backgroundColor: 'var(--navy)',
+                          color: '#FFFFFF',
+                          padding: '1px 4px',
+                          borderRadius: '2px',
+                          marginLeft: '4px',
+                        }}
+                      >
+                        ATM
+                      </span>
+                    )}
                   </td>
 
                   {/* PE: LTP (Clickable) */}
                   <td
-                    className="font-data"
+                    className="font-num num-fade"
                     style={{
-                      ...S.td,
                       textAlign: 'left',
                       fontWeight: 600,
-                      color: 'var(--text-white)',
+                      color: 'var(--text-heading)',
                       cursor: 'pointer',
-                      borderLeft: '1px solid var(--border-2)',
-                      background: itmPE ? 'rgba(244, 63, 94, 0.04)' : undefined
+                      borderLeft: '1px solid var(--border-main)',
+                      background: itmPE ? 'var(--loss-bg)' : undefined
                     }}
                     onClick={() => openOrderTicket(makeOrder(row, 'PE', 'BUY'))}
                     title="Click to place Buy order for this Put strike"
@@ -217,34 +234,34 @@ export const OptionChainView = () => {
                   </td>
 
                   {/* PE: Price Change */}
-                  <td className="font-data" style={{ ...S.td, textAlign: 'right', color: row.pe.change >= 0 ? 'var(--up)' : 'var(--down)', background: itmPE ? 'rgba(244, 63, 94, 0.025)' : undefined }}>
+                  <td className="font-num num-fade" style={{ textAlign: 'right', color: row.pe.change >= 0 ? 'var(--profit)' : 'var(--loss)', background: itmPE ? 'var(--loss-bg)' : undefined }}>
                     {row.pe.change >= 0 ? '+' : ''}{row.pe.change.toFixed(1)}
                   </td>
 
                   {/* PE: Delta */}
-                  <td className="font-data" style={{ ...S.td, textAlign: 'right', color: 'var(--text-secondary)', background: itmPE ? 'rgba(244, 63, 94, 0.025)' : undefined }}>
+                  <td className="font-num" style={{ textAlign: 'right', color: 'var(--text-secondary)', background: itmPE ? 'var(--loss-bg)' : undefined }}>
                     {row.pe.delta}
                   </td>
 
                   {/* PE: IV */}
-                  <td className="font-data" style={{ ...S.td, textAlign: 'right', color: 'var(--text-muted)', background: itmPE ? 'rgba(244, 63, 94, 0.025)' : undefined }}>
+                  <td className="font-num" style={{ textAlign: 'right', color: 'var(--text-muted)', background: itmPE ? 'var(--loss-bg)' : undefined }}>
                     {row.pe.iv}%
                   </td>
 
                   {/* PE: OI Change */}
-                  <td className="font-data" style={{ ...S.td, textAlign: 'right', color: row.pe.oiChange >= 0 ? 'var(--up)' : 'var(--down)', background: itmPE ? 'rgba(244, 63, 94, 0.025)' : undefined }}>
+                  <td className="font-num" style={{ textAlign: 'right', color: row.pe.oiChange >= 0 ? 'var(--profit)' : 'var(--loss)', background: itmPE ? 'var(--loss-bg)' : undefined }}>
                     {row.pe.oiChange >= 0 ? '+' : ''}{(row.pe.oiChange / 1000).toFixed(0)}k
                   </td>
 
                   {/* PE: OI */}
-                  <td className="font-data" style={{ ...S.td, textAlign: 'right', background: itmPE ? 'rgba(244, 63, 94, 0.025)' : undefined }}>
+                  <td className="font-num" style={{ textAlign: 'right', background: itmPE ? 'var(--loss-bg)' : undefined }}>
                     {(row.pe.oi / 100000).toFixed(1)}
                   </td>
 
-                  {/* PE: OI Bar */}
-                  <td style={{ ...S.td, background: itmPE ? 'rgba(244, 63, 94, 0.025)' : undefined }}>
+                  {/* PE: OI Depth Bar */}
+                  <td style={{ background: itmPE ? 'var(--loss-bg)' : undefined }}>
                     <div style={S.oiBarTrack}>
-                      <div style={{ ...S.oiBarFill, width: `${(row.pe.oi / maxOI) * 100}%`, background: 'var(--down)' }} />
+                      <div style={{ ...S.oiBarFill, width: `${(row.pe.oi / maxOI) * 100}%`, backgroundColor: 'var(--loss)' }} />
                     </div>
                   </td>
                 </tr>
@@ -270,118 +287,88 @@ const S = {
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '6px 12px',
-    background: 'var(--bg-panel-2)',
-    borderBottom: '1px solid var(--border-1)',
-    height: '38px',
+    backgroundColor: 'var(--bg-card)',
+    borderBottom: '1px solid var(--border-main)',
+    height: '40px',
     flexShrink: 0,
   },
   summaryLeft: { display: 'flex', alignItems: 'center', gap: '8px' },
-  chainTitle: { fontSize: '12px', fontWeight: 700, color: 'var(--text-white)' },
+  chainTitle: { fontSize: '12.5px', fontWeight: 700, color: 'var(--text-heading)' },
   spotPill: {
     display: 'flex',
     alignItems: 'center',
     gap: '5px',
     padding: '2px 8px',
-    background: 'var(--bg-panel)',
-    border: '1px solid var(--border-1)',
-    borderRadius: '3px',
+    backgroundColor: 'var(--bg-surface)',
+    border: '1px solid var(--border-main)',
+    borderRadius: 'var(--radius-sm)',
   },
-  summaryMetrics: { display: 'flex', alignItems: 'center', gap: '14px' },
+  summaryMetrics: { display: 'flex', alignItems: 'center', gap: '16px' },
   metricCard: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start' },
   metricLbl: { fontSize: '8.5px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' },
   oiRatioTrack: {
     width: '36px',
     height: '4px',
-    background: 'rgba(244, 63, 94, 0.3)',
+    backgroundColor: 'var(--loss-bg)',
+    border: '1px solid var(--border-subtle)',
     borderRadius: '2px',
     overflow: 'hidden',
   },
   oiRatioFill: {
     height: '100%',
-    background: 'var(--up)',
+    backgroundColor: 'var(--profit)',
   },
 
-  // Table
-  tableWrap: { flex: 1, overflow: 'auto', background: 'var(--bg-panel)' },
-  table: { width: '100%', borderCollapse: 'collapse', fontSize: '11px' },
+  tableWrap: { flex: 1, overflow: 'auto', backgroundColor: 'var(--bg-card)' },
   thCallSuper: {
     padding: '4px',
-    background: 'rgba(16, 185, 129, 0.06)',
-    color: 'var(--up)',
-    fontSize: '9.5px',
+    backgroundColor: 'var(--profit-bg)',
+    color: 'var(--profit)',
+    fontSize: '10px',
     fontWeight: 700,
-    letterSpacing: '0.06em',
+    letterSpacing: '0.04em',
     textAlign: 'center',
-    borderRight: '1px solid var(--border-2)',
+    borderRight: '1px solid var(--border-main)',
   },
   thStrikeSuper: {
     padding: '4px',
-    background: 'var(--bg-surface)',
-    color: 'var(--text-secondary)',
-    fontSize: '9.5px',
+    backgroundColor: 'var(--bg-surface)',
+    color: 'var(--text-heading)',
+    fontSize: '10px',
     fontWeight: 700,
     textAlign: 'center',
     width: '80px',
   },
   thPutSuper: {
     padding: '4px',
-    background: 'rgba(244, 63, 94, 0.06)',
-    color: 'var(--down)',
-    fontSize: '9.5px',
+    backgroundColor: 'var(--loss-bg)',
+    color: 'var(--loss)',
+    fontSize: '10px',
     fontWeight: 700,
-    letterSpacing: '0.06em',
-    textAlign: 'center',
-    borderLeft: '1px solid var(--border-2)',
-  },
-  th: {
-    background: 'var(--bg-panel-2)',
-    color: 'var(--text-muted)',
-    fontSize: '9.5px',
-    fontWeight: 600,
-    textTransform: 'uppercase',
     letterSpacing: '0.04em',
-    padding: '4px 6px',
-    borderBottom: '1px solid var(--border-1)',
-    position: 'sticky',
-    top: 21,
-    zIndex: 2,
-    whiteSpace: 'nowrap',
+    textAlign: 'center',
+    borderLeft: '1px solid var(--border-main)',
   },
   thStrike: {
-    background: 'var(--bg-surface)',
-    color: 'var(--text-secondary)',
-    fontSize: '9.5px',
+    backgroundColor: 'var(--bg-surface)',
+    color: 'var(--text-heading)',
+    fontSize: '10.5px',
     fontWeight: 600,
     textAlign: 'center',
-    padding: '4px 6px',
-    position: 'sticky',
-    top: 21,
-    zIndex: 2,
-    borderBottom: '1px solid var(--border-1)',
-  },
-  td: {
-    padding: '4px 6px',
-    borderBottom: '1px solid var(--border-1)',
-    whiteSpace: 'nowrap',
+    padding: '5px 8px',
+    borderBottom: '1px solid var(--border-main)',
+    borderRight: '1px solid var(--border-main)',
+    borderLeft: '1px solid var(--border-main)',
   },
   ltpChip: {
     padding: '1px 4px',
-    borderRadius: '2px',
-    transition: 'background 120ms ease',
-  },
-  atmBadge: {
-    fontSize: '8px',
-    fontWeight: 700,
-    background: '#3b82f6',
-    color: '#fff',
-    padding: '1px 3px',
-    borderRadius: '2px',
-    marginLeft: '4px',
+    borderRadius: 'var(--radius-sm)',
+    transition: 'background-color 120ms ease',
   },
   oiBarTrack: {
     width: '100%',
     height: '3px',
-    background: 'rgba(255, 255, 255, 0.04)',
+    backgroundColor: 'var(--bg-surface)',
     borderRadius: '1px',
     overflow: 'hidden',
   },

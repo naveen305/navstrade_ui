@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useTrading } from '../../context/TradingContext';
-import { Crosshair, BarChart2, Clock, ShieldCheck, ChevronRight } from 'lucide-react';
+import { Crosshair, Clock, ShieldCheck, ChevronRight, BarChart2, TrendingUp } from 'lucide-react';
+import { StatBadge } from '../common/StatBadge';
+import { EmptyState } from '../common/EmptyState';
 
 export const TerminalView = () => {
   const {
@@ -10,15 +12,18 @@ export const TerminalView = () => {
   } = useTrading();
 
   const [tf, setTf] = useState('5m');
-  const [bottomTab, setBottomTab] = useState('positions');
+  const [activeBottomTab, setActiveBottomTab] = useState('positions'); // 'positions' | 'trailing'
+  const [showEma9, setShowEma9] = useState(true);
+  const [showEma21, setShowEma21] = useState(true);
+  const [showVwap, setShowVwap] = useState(true);
   const [hoveredCandle, setHoveredCandle] = useState(null);
 
-  // Portfolio Greeks calculation
+  // Portfolio Greeks
   const netDelta = positions.reduce((s, p) => s + (p.delta || 0) * Math.sign(p.qty), 0).toFixed(2);
   const netTheta = positions.reduce((s, p) => s + (p.theta || 0), 0).toFixed(1);
   const netVega  = positions.reduce((s, p) => s + (p.vega  || 0), 0).toFixed(1);
 
-  // 32 Precision Candlesticks for 5m intraday action
+  // 32 Precision Intraday 5m Candles
   const candles = [
     { time: '09:15', o: 25010, h: 25045, l: 24995, c: 25035, vol: 62 },
     { time: '09:20', o: 25035, h: 25060, l: 25015, c: 25020, vol: 45 },
@@ -57,19 +62,17 @@ export const TerminalView = () => {
   const minPrice = 24980;
   const maxPrice = 25200;
   const priceRange = maxPrice - minPrice;
-  const chartHeight = 230;
+  const chartHeight = 225;
   const chartWidth = 720;
-  const candleW = 12;
+  const candleW = 11;
   const stepX = chartWidth / candles.length;
 
   const toY = (val) => chartHeight - ((val - minPrice) / priceRange) * chartHeight;
-
-  // Active display bar
   const activeCandle = hoveredCandle || candles[candles.length - 1];
 
   return (
     <div style={S.root}>
-      {/* ── 1. Instrument Watchlist Strip ── */}
+      {/* ── 1. Index & Ticker Strip ── */}
       <div style={S.tickerStrip}>
         {watchlist.map(item => {
           const up = item.change >= 0;
@@ -77,18 +80,26 @@ export const TerminalView = () => {
           return (
             <button
               key={item.symbol}
-              style={{ ...S.tickerCard, ...(active ? S.tickerActive : {}) }}
+              type="button"
+              style={{ ...S.tickerCard, ...(active ? S.tickerCardActive : {}) }}
               onClick={() => setSelectedSymbol(item)}
             >
-              <div style={S.tickerRow1}>
+              <div style={S.tickerTop}>
                 <span style={S.tickerSym}>{item.symbol}</span>
                 <span style={S.tickerType}>{item.type}</span>
               </div>
-              <div style={S.tickerRow2}>
-                <span className="font-data" style={S.tickerPrice}>
+              <div style={S.tickerBottom}>
+                <span className="font-num" style={S.tickerPrice}>
                   ₹{item.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </span>
-                <span className="font-data" style={{ fontSize: '10px', color: up ? 'var(--up)' : 'var(--down)', fontWeight: 600 }}>
+                <span
+                  className="font-num num-fade"
+                  style={{
+                    fontSize: '10.5px',
+                    color: up ? 'var(--profit)' : 'var(--loss)',
+                    fontWeight: 500,
+                  }}
+                >
                   {up ? '+' : ''}{item.changePct?.toFixed(2)}%
                 </span>
               </div>
@@ -97,72 +108,119 @@ export const TerminalView = () => {
         })}
       </div>
 
-      {/* ── 2. Terminal Center Grid ── */}
+      {/* ── 2. Main Workspace ── */}
       <div style={S.workspace}>
 
-        {/* Left: Chart */}
+        {/* Left: Candlestick Chart */}
         <div style={S.chartPanel}>
-          {/* Chart Header Bar */}
+          {/* Chart Toolbar */}
           <div style={S.chartToolbar}>
-            <div style={S.chartSymInfo}>
-              <span style={S.chartSym}>{selectedSymbol.symbol}</span>
-              <span className="font-data" style={S.chartMainPrice}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-heading)' }}>
+                {selectedSymbol.symbol}
+              </span>
+              <span className="font-num" style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-primary)' }}>
                 ₹{selectedSymbol.price?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </span>
-              <span className="font-data" style={{ fontSize: '11px', color: selectedSymbol.change >= 0 ? 'var(--up)' : 'var(--down)', fontWeight: 500 }}>
+              <span
+                className="font-num"
+                style={{
+                  fontSize: '11px',
+                  color: selectedSymbol.change >= 0 ? 'var(--profit)' : 'var(--loss)',
+                  fontWeight: 500,
+                }}
+              >
                 {selectedSymbol.change >= 0 ? '+' : ''}{selectedSymbol.change?.toFixed(2)} ({selectedSymbol.changePct?.toFixed(2)}%)
               </span>
             </div>
 
-            {/* OHLC Stats Header */}
-            <div style={S.ohlcBar} className="font-data">
-              <span>O: <strong style={{ color: 'var(--text-white)' }}>{activeCandle.o.toFixed(1)}</strong></span>
-              <span>H: <strong style={{ color: 'var(--text-white)' }}>{activeCandle.h.toFixed(1)}</strong></span>
-              <span>L: <strong style={{ color: 'var(--text-white)' }}>{activeCandle.l.toFixed(1)}</strong></span>
-              <span>C: <strong style={{ color: activeCandle.c >= activeCandle.o ? 'var(--up)' : 'var(--down)' }}>{activeCandle.c.toFixed(1)}</strong></span>
+            {/* OHLC Bar */}
+            <div style={S.ohlcBar} className="font-num">
+              <span>O: <strong style={{ color: 'var(--text-primary)' }}>{activeCandle.o.toFixed(1)}</strong></span>
+              <span>H: <strong style={{ color: 'var(--text-primary)' }}>{activeCandle.h.toFixed(1)}</strong></span>
+              <span>L: <strong style={{ color: 'var(--text-primary)' }}>{activeCandle.l.toFixed(1)}</strong></span>
+              <span>C: <strong style={{ color: activeCandle.c >= activeCandle.o ? 'var(--profit)' : 'var(--loss)' }}>{activeCandle.c.toFixed(1)}</strong></span>
               <span>Vol: <strong style={{ color: 'var(--text-secondary)' }}>{activeCandle.vol}K</strong></span>
             </div>
 
-            {/* Timeframe selector */}
-            <div style={S.tfGroup}>
-              {['1m', '3m', '5m', '15m', '1D'].map(t => (
+            {/* Timeframe & Overlays */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={S.tfGroup}>
+                {['1m', '3m', '5m', '15m', '1D'].map(t => (
+                  <button
+                    key={t}
+                    type="button"
+                    style={{ ...S.tfBtn, ...(tf === t ? S.tfBtnActive : {}) }}
+                    onClick={() => setTf(t)}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+
+              {/* EMA & VWAP Overlays Toggle */}
+              <div style={S.overlayGroup}>
                 <button
-                  key={t}
-                  style={{ ...S.tfBtn, ...(tf === t ? S.tfActive : {}) }}
-                  onClick={() => setTf(t)}
+                  type="button"
+                  style={{ ...S.overlayPill, opacity: showEma9 ? 1 : 0.4 }}
+                  onClick={() => setShowEma9(!showEma9)}
+                  title="Toggle 9 EMA"
                 >
-                  {t}
+                  <span style={{ width: 6, height: 2, backgroundColor: 'var(--navy)', display: 'inline-block', marginRight: 3 }} />
+                  EMA 9
                 </button>
-              ))}
+                <button
+                  type="button"
+                  style={{ ...S.overlayPill, opacity: showEma21 ? 1 : 0.4 }}
+                  onClick={() => setShowEma21(!showEma21)}
+                  title="Toggle 21 EMA"
+                >
+                  <span style={{ width: 6, height: 2, backgroundColor: 'var(--warning)', display: 'inline-block', marginRight: 3 }} />
+                  EMA 21
+                </button>
+                <button
+                  type="button"
+                  style={{ ...S.overlayPill, opacity: showVwap ? 1 : 0.4 }}
+                  onClick={() => setShowVwap(!showVwap)}
+                  title="Toggle VWAP"
+                >
+                  <span style={{ width: 6, height: 2, backgroundColor: '#8A929F', display: 'inline-block', marginRight: 3 }} />
+                  VWAP
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* SVG Candlestick Canvas with Y-Axis */}
-          <div style={S.chartContainer}>
-            <div style={S.chartSvgWrap}>
+          {/* SVG Candlestick Canvas with Precision Price Axis */}
+          <div style={S.chartCanvasWrap}>
+            <div style={S.svgArea}>
               <svg width="100%" height="100%" viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="none">
-                {/* Horizontal Grid Lines */}
+                {/* Horizontal Grid lines */}
                 {[25000, 25050, 25100, 25150].map(p => {
                   const y = toY(p);
                   return (
-                    <line key={p} x1="0" y1={y} x2={chartWidth} y2={y} stroke="#1b202c" strokeWidth="1" strokeDasharray="2 3" />
+                    <line key={p} x1="0" y1={y} x2={chartWidth} y2={y} stroke="var(--border-subtle)" strokeWidth="1" strokeDasharray="3 3" />
                   );
                 })}
 
-                {/* Day Reference Lines */}
-                {/* VWAP */}
-                <line x1="0" y1={toY(selectedSymbol.vwap || 25088)} x2={chartWidth} y2={toY(selectedSymbol.vwap || 25088)}
-                  stroke="#3b82f6" strokeWidth="1" strokeDasharray="3 3" opacity="0.4" />
-
-                {/* Day High */}
-                <line x1="0" y1={toY(selectedSymbol.dayHigh || 25180)} x2={chartWidth} y2={toY(selectedSymbol.dayHigh || 25180)}
-                  stroke="var(--warn)" strokeWidth="1" strokeDasharray="2 4" opacity="0.3" />
+                {/* VWAP Overlay */}
+                {showVwap && (
+                  <line
+                    x1="0"
+                    y1={toY(selectedSymbol.vwap || 25088)}
+                    x2={chartWidth}
+                    y2={toY(selectedSymbol.vwap || 25088)}
+                    stroke="#8A929F"
+                    strokeWidth="1"
+                    strokeDasharray="4 4"
+                  />
+                )}
 
                 {/* Volume Histogram */}
                 {candles.map((c, i) => {
                   const x = i * stepX + stepX / 2;
                   const isUp = c.c >= c.o;
-                  const volH = (c.vol / 100) * 45;
+                  const volH = (c.vol / 100) * 40;
                   return (
                     <rect
                       key={`vol-${i}`}
@@ -170,25 +228,42 @@ export const TerminalView = () => {
                       y={chartHeight - volH}
                       width="8"
                       height={volH}
-                      fill={isUp ? 'rgba(16, 185, 129, 0.18)' : 'rgba(244, 63, 94, 0.18)'}
+                      fill={isUp ? 'var(--profit)' : 'var(--loss)'}
+                      opacity="0.18"
                       rx="1"
                     />
                   );
                 })}
 
-                {/* 20 EMA Smooth Line */}
-                <path
-                  d={candles.map((c, i) => {
-                    const x = i * stepX + stepX / 2;
-                    // Mock 20 EMA smoothing
-                    const emaVal = c.o * 0.3 + c.c * 0.7 - 5;
-                    const y = toY(emaVal);
-                    return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-                  }).join(' ')}
-                  fill="none"
-                  stroke="rgba(56, 189, 248, 0.55)"
-                  strokeWidth="1.5"
-                />
+                {/* EMA 9 Curve */}
+                {showEma9 && (
+                  <path
+                    d={candles.map((c, i) => {
+                      const x = i * stepX + stepX / 2;
+                      const y = toY(c.c - 4);
+                      return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+                    }).join(' ')}
+                    fill="none"
+                    stroke="var(--navy)"
+                    strokeWidth="1.25"
+                    opacity="0.8"
+                  />
+                )}
+
+                {/* EMA 21 Curve */}
+                {showEma21 && (
+                  <path
+                    d={candles.map((c, i) => {
+                      const x = i * stepX + stepX / 2;
+                      const y = toY(c.o * 0.4 + c.c * 0.6 - 10);
+                      return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+                    }).join(' ')}
+                    fill="none"
+                    stroke="var(--warning)"
+                    strokeWidth="1.25"
+                    opacity="0.8"
+                  />
+                )}
 
                 {/* Candlesticks */}
                 {candles.map((c, i) => {
@@ -200,7 +275,7 @@ export const TerminalView = () => {
                   const yL = toY(c.l);
                   const bodyTop = Math.min(yO, yC);
                   const bodyH = Math.max(1.5, Math.abs(yO - yC));
-                  const color = isUp ? 'var(--up)' : 'var(--down)';
+                  const candleColor = isUp ? 'var(--profit)' : 'var(--loss)';
 
                   return (
                     <g
@@ -210,14 +285,14 @@ export const TerminalView = () => {
                       style={{ cursor: 'crosshair' }}
                     >
                       {/* Upper & Lower Wick */}
-                      <line x1={x} y1={yH} x2={x} y2={yL} stroke={color} strokeWidth="1" />
+                      <line x1={x} y1={yH} x2={x} y2={yL} stroke={candleColor} strokeWidth="1" />
                       {/* Real Body */}
                       <rect
                         x={x - candleW / 2}
                         y={bodyTop}
                         width={candleW}
                         height={bodyH}
-                        fill={color}
+                        fill={candleColor}
                         rx="1"
                       />
                     </g>
@@ -226,19 +301,19 @@ export const TerminalView = () => {
               </svg>
             </div>
 
-            {/* Right-Side Precision Price Axis */}
+            {/* Right-Side Price Axis */}
             <div style={S.priceAxis}>
               {[25200, 25150, 25100, 25050, 25000].map(p => (
-                <div key={p} className="font-data" style={S.priceAxisTick}>
+                <div key={p} className="font-num" style={S.priceTick}>
                   {p}
                 </div>
               ))}
-              {/* Current Price Marker */}
+              {/* Live Spot Pin */}
               <div
-                className="font-data"
+                className="font-num"
                 style={{
-                  ...S.priceMarker,
-                  top: `${((maxPrice - selectedSymbol.price) / priceRange) * 100}%`
+                  ...S.pricePin,
+                  top: `${((maxPrice - selectedSymbol.price) / priceRange) * 100}%`,
                 }}
               >
                 {selectedSymbol.price?.toFixed(1)}
@@ -247,63 +322,57 @@ export const TerminalView = () => {
           </div>
         </div>
 
-        {/* Right: Greeks & Quick Entry */}
-        <div style={S.rightCol}>
+        {/* Right Panel: Portfolio Greeks & Defined-Risk Order Entry */}
+        <div style={S.rightPanel}>
 
-          {/* Portfolio Greeks Panel */}
-          <div style={S.panel}>
-            <div style={S.panelHdr}>
-              <span style={S.panelTitle}>
-                <Crosshair size={11} style={{ marginRight: 4 }} />
-                Portfolio Greeks
-              </span>
-              <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>NET EXPOSURE</span>
+          {/* Portfolio Greeks Card */}
+          <div style={S.panelCard}>
+            <div style={S.panelCardHdr}>
+              <span style={S.panelCardTitle}>Portfolio Greeks</span>
+              <span style={{ fontSize: '9.5px', color: 'var(--text-muted)' }}>NET EXPOSURE</span>
             </div>
 
             <div style={S.greeksGrid}>
-              <div style={S.greekCard}>
-                <div style={S.greekLabel}>Net Delta (Δ)</div>
-                <div className="font-data" style={S.greekVal}>
+              <div style={S.greekItem}>
+                <span style={S.greekLbl}>Net Delta (Δ)</span>
+                <span className="font-num" style={S.greekVal}>
                   {Number(netDelta) >= 0 ? `+${netDelta}` : netDelta}
-                </div>
-                <div style={S.greekSub}>Neutral range</div>
+                </span>
+                <span style={S.greekSub}>Directional sensitivity</span>
               </div>
-
-              <div style={S.greekCard}>
-                <div style={S.greekLabel}>Net Theta (Θ) / day</div>
-                <div className="font-data" style={{ ...S.greekVal, color: Number(netTheta) < -30 ? 'var(--warn)' : 'var(--text-white)' }}>
+              <div style={S.greekItem}>
+                <span style={S.greekLbl}>Net Theta (Θ) / day</span>
+                <span className="font-num" style={{ ...S.greekVal, color: Number(netTheta) < -25 ? 'var(--loss)' : 'var(--text-primary)' }}>
                   ₹{netTheta}
-                </div>
-                <div style={S.greekSub}>Decay rate</div>
+                </span>
+                <span style={S.greekSub}>Time decay rate</span>
               </div>
-
-              <div style={S.greekCard}>
-                <div style={S.greekLabel}>Net Vega (ν)</div>
-                <div className="font-data" style={S.greekVal}>
+              <div style={S.greekItem}>
+                <span style={S.greekLbl}>Net Vega (ν)</span>
+                <span className="font-num" style={S.greekVal}>
                   +{netVega}
-                </div>
-                <div style={S.greekSub}>Vol sensitivity</div>
+                </span>
+                <span style={S.greekSub}>IV sensitivity</span>
               </div>
-
-              <div style={S.greekCard}>
-                <div style={S.greekLabel}>Max Risk / Trade</div>
-                <div className="font-data" style={S.greekVal}>
+              <div style={S.greekItem}>
+                <span style={S.greekLbl}>Max Risk / Trade</span>
+                <span className="font-num" style={S.greekVal}>
                   1.5%
-                </div>
-                <div style={S.greekSub}>Strict cap</div>
+                </span>
+                <span style={S.greekSub}>Capital cap enforced</span>
               </div>
             </div>
           </div>
 
-          {/* Quick Order Entry Panel */}
-          <div style={S.panel}>
-            <div style={S.panelHdr}>
-              <span style={S.panelTitle}>Defined-Risk Order Entry</span>
-              <span style={{ fontSize: '9px', color: 'var(--up)', fontWeight: 600 }}>SL ENFORCED</span>
+          {/* Defined-Risk Quick Order Entry */}
+          <div style={S.panelCard}>
+            <div style={S.panelCardHdr}>
+              <span style={S.panelCardTitle}>Defined-Risk Order Entry</span>
+              <span className="badge badge-profit" style={{ fontSize: '9px' }}>SL ENFORCED</span>
             </div>
 
-            <div style={S.quickOrderBody}>
-              <div style={S.quickOrderGrid}>
+            <div style={S.orderEntryBody}>
+              <div style={S.orderBtnsGrid}>
                 {[
                   {
                     label: 'ATM 25150 CE',
@@ -316,7 +385,7 @@ export const TerminalView = () => {
                   },
                   {
                     label: 'ATM 25150 PE',
-                    sub: 'Hedging / Short',
+                    sub: 'Hedge / Short',
                     type: 'PE',
                     action: 'BUY',
                     price: 114.50,
@@ -344,7 +413,8 @@ export const TerminalView = () => {
                 ].map(o => (
                   <button
                     key={o.label}
-                    style={S.quickBtn}
+                    type="button"
+                    style={S.quickOrderBtn}
                     onClick={() => openOrderTicket({
                       symbol: `${selectedSymbol.symbol} ${o.label}`,
                       action: o.action,
@@ -356,21 +426,21 @@ export const TerminalView = () => {
                       strategy: o.label
                     })}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={S.quickBtnLabel}>{o.label}</span>
-                      <span className="font-data" style={S.quickBtnPrice}>₹{o.price.toFixed(2)}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                      <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-heading)' }}>{o.label}</span>
+                      <span className="font-num" style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>₹{o.price.toFixed(2)}</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
-                      <span style={S.quickBtnSub}>{o.sub}</span>
-                      <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>Auto-Sized</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{o.sub}</span>
+                      <span style={{ fontSize: '9.5px', color: 'var(--profit)' }}>Auto-Sized</span>
                     </div>
                   </button>
                 ))}
               </div>
 
               <div style={S.riskNotice}>
-                <ShieldCheck size={11} style={{ color: 'var(--up)', flexShrink: 0 }} />
-                <span>Orders auto-capped to 1.5% capital loss. Auto exit at 15:15 IST.</span>
+                <ShieldCheck size={12} style={{ color: 'var(--profit)', flexShrink: 0 }} />
+                <span>Risk capped strictly to ≤1.5% equity. Cannot submit without stop-loss.</span>
               </div>
             </div>
           </div>
@@ -378,139 +448,184 @@ export const TerminalView = () => {
         </div>
       </div>
 
-      {/* ── 3. Bottom Positions Dock ── */}
-      <div style={S.dockWrap}>
-        <div style={S.dockTabBar}>
+      {/* ── 3. Bottom Tabs: Open Positions & Trailing SL Monitor ── */}
+      <div style={S.bottomDock}>
+        <div style={S.bottomTabBar}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
             <button
-              style={{ ...S.dockTab, ...(bottomTab === 'positions' ? S.dockTabActive : {}) }}
-              onClick={() => setBottomTab('positions')}
+              type="button"
+              style={{ ...S.dockTab, ...(activeBottomTab === 'positions' ? S.dockTabActive : {}) }}
+              onClick={() => setActiveBottomTab('positions')}
             >
               Open Positions ({positions.length})
             </button>
             <button
-              style={{ ...S.dockTab, ...(bottomTab === 'trailing' ? S.dockTabActive : {}) }}
-              onClick={() => setBottomTab('trailing')}
+              type="button"
+              style={{ ...S.dockTab, ...(activeBottomTab === 'trailing' ? S.dockTabActive : {}) }}
+              onClick={() => setActiveBottomTab('trailing')}
             >
-              Trailing SL Monitor
+              Trailing SL Monitor ({positions.filter(p => p.trailingSlActive).length})
             </button>
           </div>
 
           <div style={S.dockMeta}>
-            <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>Net Unrealized MTM:</span>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Unrealized MTM:</span>
             <span
-              className="font-data"
+              className="font-num num-fade"
               style={{
-                fontSize: '11px',
+                fontSize: '11.5px',
                 fontWeight: 600,
-                color: totalUnrealizedPnl >= 0 ? 'var(--up)' : 'var(--down)'
+                color: totalUnrealizedPnl >= 0 ? 'var(--profit)' : 'var(--loss)'
               }}
             >
               {totalUnrealizedPnl >= 0 ? '+' : ''}₹{totalUnrealizedPnl.toFixed(2)}
             </span>
-            <span style={S.dockMetaSep} />
-            <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-              <Clock size={10} style={{ marginRight: 3, verticalAlign: 'middle' }} />
+            <div style={S.dockMetaSep} />
+            <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
+              <Clock size={11} style={{ marginRight: 3, verticalAlign: 'middle' }} />
               Auto Square-Off: 15:15 IST
             </span>
           </div>
         </div>
 
-        {/* Positions Table */}
-        <div style={S.dockTableWrap}>
-          {positions.length === 0 ? (
-            <div style={S.emptyState}>
-              <BarChart2 size={18} style={{ color: 'var(--text-muted)', marginBottom: 4 }} />
-              <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>No open positions</span>
-            </div>
-          ) : (
-            <table className="data-table">
+        {/* Tab 1: Positions Table */}
+        {activeBottomTab === 'positions' && (
+          <div style={S.dockTableWrap}>
+            {positions.length === 0 ? (
+              <EmptyState
+                icon={BarChart2}
+                title="No active open positions"
+                description="Orders placed via Terminal or Strategy Pack with predefined stop-loss will show here."
+              />
+            ) : (
+              <table className="calm-table">
+                <thead>
+                  <tr>
+                    <th>Instrument</th>
+                    <th>Strategy</th>
+                    <th>Side</th>
+                    <th style={{ textAlign: 'right' }}>Qty</th>
+                    <th style={{ textAlign: 'right' }}>Avg Price</th>
+                    <th style={{ textAlign: 'right' }}>LTP</th>
+                    <th style={{ textAlign: 'right' }}>Stop Loss</th>
+                    <th style={{ textAlign: 'right' }}>Target</th>
+                    <th>Trailing Mode</th>
+                    <th style={{ textAlign: 'right' }}>P&L</th>
+                    <th style={{ textAlign: 'center' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {positions.map(pos => {
+                    const profit = pos.pnl >= 0;
+                    return (
+                      <tr key={pos.id}>
+                        <td style={{ fontWeight: 600, color: 'var(--text-heading)' }}>{pos.symbol}</td>
+                        <td>
+                          <span className="badge badge-neutral">{pos.strategy}</span>
+                        </td>
+                        <td>
+                          <span className={pos.qty > 0 ? 'badge badge-profit' : 'badge badge-loss'}>
+                            {pos.qty > 0 ? 'BUY' : 'SELL'}
+                          </span>
+                        </td>
+                        <td className="font-num" style={{ textAlign: 'right' }}>{Math.abs(pos.qty)}</td>
+                        <td className="font-num" style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>
+                          ₹{pos.entryPrice.toFixed(2)}
+                        </td>
+                        <td className="font-num num-fade" style={{ textAlign: 'right', fontWeight: 600 }}>
+                          ₹{pos.currentPrice.toFixed(2)}
+                        </td>
+                        <td className="font-num" style={{ textAlign: 'right', color: 'var(--loss)' }}>
+                          ₹{pos.sl.toFixed(2)}
+                        </td>
+                        <td className="font-num" style={{ textAlign: 'right', color: 'var(--profit)' }}>
+                          ₹{pos.target.toFixed(2)}
+                        </td>
+                        <td>
+                          {pos.trailingSlActive ? (
+                            <span className="badge badge-navy">
+                              Active (₹{pos.trailingSlStep || 2})
+                            </span>
+                          ) : (
+                            <span className="badge badge-neutral">Fixed SL</span>
+                          )}
+                        </td>
+                        <td
+                          className="font-num num-fade"
+                          style={{
+                            textAlign: 'right',
+                            fontWeight: 600,
+                            color: profit ? 'var(--profit)' : 'var(--loss)'
+                          }}
+                        >
+                          {profit ? '+' : ''}₹{pos.pnl.toFixed(2)}
+                          <span style={{ fontSize: '10px', marginLeft: 4, opacity: 0.85 }}>
+                            ({profit ? '+' : ''}{pos.pnlPct.toFixed(1)}%)
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <button
+                            type="button"
+                            className="btn btn-outline-danger btn-sm"
+                            style={{ padding: '2px 7px', fontSize: '10.5px' }}
+                            onClick={() => closePosition(pos.id)}
+                            title="Close position calmly"
+                          >
+                            Close
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+
+        {/* Tab 2: Trailing SL Monitor */}
+        {activeBottomTab === 'trailing' && (
+          <div style={S.dockTableWrap}>
+            <table className="calm-table">
               <thead>
                 <tr>
                   <th>Instrument</th>
-                  <th>Strategy</th>
-                  <th>Side</th>
-                  <th style={{ textAlign: 'right' }}>Qty</th>
-                  <th style={{ textAlign: 'right' }}>Avg Price</th>
-                  <th style={{ textAlign: 'right' }}>LTP</th>
-                  <th style={{ textAlign: 'right' }}>Stop Loss</th>
-                  <th style={{ textAlign: 'right' }}>Target</th>
-                  <th>Trailing Mode</th>
-                  <th style={{ textAlign: 'right' }}>P&L (MTM)</th>
-                  <th style={{ textAlign: 'center' }}>Action</th>
+                  <th>Current SL Trigger</th>
+                  <th>Trail Distance</th>
+                  <th>Break-Even Lock</th>
+                  <th>Trail Logic</th>
+                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {positions.map(pos => {
-                  const profit = pos.pnl >= 0;
-                  return (
-                    <tr key={pos.id}>
-                      <td style={{ fontWeight: 600, color: 'var(--text-white)' }}>{pos.symbol}</td>
-                      <td>
-                        <span className="tag tag-neutral">{pos.strategy}</span>
-                      </td>
-                      <td>
-                        <span className={pos.qty > 0 ? 'tag tag-up' : 'tag tag-down'}>
-                          {pos.qty > 0 ? 'BUY' : 'SELL'}
-                        </span>
-                      </td>
-                      <td className="font-data" style={{ textAlign: 'right' }}>{Math.abs(pos.qty)}</td>
-                      <td className="font-data" style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>
-                        ₹{pos.entryPrice.toFixed(2)}
-                      </td>
-                      <td className="font-data" style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-white)' }}>
-                        ₹{pos.currentPrice.toFixed(2)}
-                      </td>
-                      <td className="font-data" style={{ textAlign: 'right', color: 'var(--down)' }}>
-                        ₹{pos.sl.toFixed(2)}
-                      </td>
-                      <td className="font-data" style={{ textAlign: 'right', color: 'var(--up)' }}>
-                        ₹{pos.target.toFixed(2)}
-                      </td>
-                      <td>
-                        {pos.trailingSlActive ? (
-                          <span className="tag tag-info">
-                            Trailing (₹{pos.trailingStep || 5})
-                          </span>
-                        ) : (
-                          <span className="tag tag-neutral">Fixed SL</span>
-                        )}
-                      </td>
-                      <td
-                        className="font-data"
-                        style={{
-                          textAlign: 'right',
-                          fontWeight: 600,
-                          color: profit ? 'var(--up)' : 'var(--down)'
-                        }}
-                      >
-                        {profit ? '+' : ''}₹{pos.pnl.toFixed(2)}
-                        <span style={{ fontSize: '10px', marginLeft: 4, opacity: 0.85 }}>
-                          ({profit ? '+' : ''}{pos.pnlPct.toFixed(1)}%)
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          style={{
-                            padding: '2px 6px',
-                            fontSize: '10px',
-                            color: '#fb7185',
-                            borderColor: 'rgba(244, 63, 94, 0.25)'
-                          }}
-                          onClick={() => closePosition(pos.id)}
-                          title="Close position"
-                        >
-                          Close
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {positions.map(pos => (
+                  <tr key={`trail-${pos.id}`}>
+                    <td style={{ fontWeight: 600, color: 'var(--text-heading)' }}>{pos.symbol}</td>
+                    <td className="font-num" style={{ color: 'var(--loss)', fontWeight: 600 }}>
+                      ₹{pos.sl.toFixed(2)}
+                    </td>
+                    <td className="font-num">
+                      ₹{pos.trailingSlStep || 2.0} per step
+                    </td>
+                    <td>
+                      <span className="badge badge-profit">
+                        Locked at Cost (₹{pos.entryPrice.toFixed(2)})
+                      </span>
+                    </td>
+                    <td style={{ fontSize: '11.5px', color: 'var(--text-secondary)' }}>
+                      Auto-moves stop up by step value on each +1:1.5 R:R milestone
+                    </td>
+                    <td>
+                      <span className="badge badge-navy">
+                        {pos.trailingSlActive ? 'MONITORING' : 'OFF'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -524,13 +639,11 @@ const S = {
     overflow: 'hidden',
     userSelect: 'none',
   },
-
-  // Ticker Strip
   tickerStrip: {
     display: 'flex',
     alignItems: 'center',
-    background: 'var(--bg-surface)',
-    borderBottom: '1px solid var(--border-1)',
+    backgroundColor: 'var(--bg-card)',
+    borderBottom: '1px solid var(--border-main)',
     height: '42px',
     overflowX: 'auto',
     flexShrink: 0,
@@ -542,40 +655,37 @@ const S = {
     flexDirection: 'column',
     justifyContent: 'center',
     padding: '4px 10px',
-    background: 'transparent',
+    backgroundColor: 'transparent',
     border: '1px solid transparent',
-    borderRadius: '3px',
+    borderRadius: 'var(--radius)',
     cursor: 'pointer',
-    minWidth: '130px',
+    minWidth: '135px',
     textAlign: 'left',
     height: '36px',
     transition: 'all 120ms ease',
   },
-  tickerActive: {
-    background: 'var(--bg-panel)',
-    borderColor: 'var(--border-2)',
+  tickerCardActive: {
+    backgroundColor: 'var(--bg-surface)',
+    borderColor: 'var(--border-main)',
   },
-  tickerRow1: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' },
-  tickerSym: { fontSize: '11px', fontWeight: 600, color: 'var(--text-white)' },
+  tickerTop: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' },
+  tickerSym: { fontSize: '11px', fontWeight: 600, color: 'var(--text-heading)' },
   tickerType: { fontSize: '8.5px', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.04em' },
-  tickerRow2: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' },
-  tickerPrice: { fontSize: '11px', color: 'var(--text-secondary)' },
+  tickerBottom: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' },
+  tickerPrice: { fontSize: '11.5px', color: 'var(--text-secondary)' },
 
-  // Workspace
   workspace: {
     display: 'flex',
     flex: 1,
     overflow: 'hidden',
-    gap: '1px',
-    background: 'var(--border-1)',
+    borderBottom: '1px solid var(--border-main)',
   },
-
-  // Chart Panel
   chartPanel: {
     flex: 1,
     display: 'flex',
     flexDirection: 'column',
-    background: 'var(--bg-panel)',
+    backgroundColor: 'var(--bg-card)',
+    borderRight: '1px solid var(--border-main)',
     overflow: 'hidden',
   },
   chartToolbar: {
@@ -583,54 +693,66 @@ const S = {
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '6px 12px',
-    background: 'var(--bg-panel-2)',
-    borderBottom: '1px solid var(--border-1)',
-    height: '34px',
+    backgroundColor: 'var(--bg-card)',
+    borderBottom: '1px solid var(--border-subtle)',
+    height: '36px',
     flexShrink: 0,
   },
-  chartSymInfo: { display: 'flex', alignItems: 'center', gap: '8px' },
-  chartSym: { fontSize: '12px', fontWeight: 700, color: 'var(--text-white)' },
-  chartMainPrice: { fontSize: '13.5px', fontWeight: 700, color: 'var(--text-white)' },
   ohlcBar: {
     display: 'flex',
     alignItems: 'center',
     gap: '10px',
-    fontSize: '10.5px',
+    fontSize: '11px',
     color: 'var(--text-muted)',
   },
-  tfGroup: { display: 'flex', alignItems: 'center', gap: '1px', background: 'var(--bg-base)', padding: '1px', borderRadius: '3px' },
+  tfGroup: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '1px',
+    backgroundColor: 'var(--bg-surface)',
+    padding: '2px',
+    borderRadius: 'var(--radius)',
+  },
   tfBtn: {
     padding: '2px 7px',
-    fontSize: '10.5px',
-    background: 'transparent',
+    fontSize: '11px',
+    backgroundColor: 'transparent',
     border: 'none',
     color: 'var(--text-muted)',
     cursor: 'pointer',
-    borderRadius: '2px',
+    borderRadius: 'var(--radius-sm)',
   },
-  tfActive: {
-    background: 'var(--bg-panel)',
-    color: 'var(--text-white)',
+  tfBtnActive: {
+    backgroundColor: 'var(--bg-card)',
+    color: 'var(--text-heading)',
     fontWeight: 600,
   },
+  overlayGroup: { display: 'flex', alignItems: 'center', gap: '3px' },
+  overlayPill: {
+    display: 'flex',
+    alignItems: 'center',
+    fontSize: '10.5px',
+    color: 'var(--text-secondary)',
+    backgroundColor: 'var(--bg-surface)',
+    border: '1px solid var(--border-main)',
+    padding: '2px 6px',
+    borderRadius: 'var(--radius-sm)',
+    cursor: 'pointer',
+  },
 
-  // Chart canvas
-  chartContainer: {
+  chartCanvasWrap: {
     display: 'flex',
     flex: 1,
     overflow: 'hidden',
     position: 'relative',
+    backgroundColor: 'var(--bg-card)',
   },
-  chartSvgWrap: {
-    flex: 1,
-    height: '100%',
-    position: 'relative',
-  },
+  svgArea: { flex: 1, height: '100%', position: 'relative' },
   priceAxis: {
-    width: '54px',
+    width: '56px',
     height: '100%',
-    borderLeft: '1px solid var(--border-1)',
-    background: 'var(--bg-panel-2)',
+    borderLeft: '1px solid var(--border-subtle)',
+    backgroundColor: 'var(--bg-surface)',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between',
@@ -638,101 +760,109 @@ const S = {
     position: 'relative',
     flexShrink: 0,
   },
-  priceAxisTick: {
-    fontSize: '10px',
+  priceTick: {
+    fontSize: '10.5px',
     color: 'var(--text-muted)',
     textAlign: 'right',
   },
-  priceMarker: {
+  pricePin: {
     position: 'absolute',
     right: 0,
-    background: '#10b981',
-    color: '#fff',
-    fontSize: '9.5px',
-    fontWeight: 700,
+    backgroundColor: 'var(--profit)',
+    color: '#FFFFFF',
+    fontSize: '10px',
+    fontWeight: 600,
     padding: '1px 4px',
     borderRadius: '2px 0 0 2px',
     transform: 'translateY(-50%)',
   },
 
-  // Right column
-  rightCol: {
+  rightPanel: {
     width: '280px',
+    backgroundColor: 'var(--bg-page)',
     display: 'flex',
     flexDirection: 'column',
-    gap: '1px',
-    background: 'var(--border-1)',
+    gap: '8px',
+    padding: '8px',
+    overflowY: 'auto',
     flexShrink: 0,
   },
-  panel: {
-    background: 'var(--bg-panel)',
+  panelCard: {
+    backgroundColor: 'var(--bg-card)',
+    border: '1px solid var(--border-main)',
+    borderRadius: 'var(--radius)',
+    overflow: 'hidden',
     display: 'flex',
     flexDirection: 'column',
   },
-  panelHdr: {
+  panelCardHdr: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '5px 10px',
-    background: 'var(--bg-panel-2)',
-    borderBottom: '1px solid var(--border-1)',
-    height: '28px',
+    padding: '6px 10px',
+    backgroundColor: 'var(--bg-card)',
+    borderBottom: '1px solid var(--border-subtle)',
+    minHeight: '28px',
   },
-  panelTitle: {
-    fontSize: '10px',
+  panelCardTitle: {
+    fontSize: '10.5px',
     fontWeight: 700,
-    color: 'var(--text-secondary)',
+    color: 'var(--text-heading)',
     textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-    display: 'flex',
-    alignItems: 'center',
+    letterSpacing: '0.04em',
   },
   greeksGrid: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
     gap: '1px',
-    background: 'var(--border-1)',
+    backgroundColor: 'var(--border-subtle)',
   },
-  greekCard: {
+  greekItem: {
     padding: '8px 10px',
-    background: 'var(--bg-panel)',
+    backgroundColor: 'var(--bg-card)',
   },
-  greekLabel: {
+  greekLbl: {
     fontSize: '9px',
-    fontWeight: 600,
     color: 'var(--text-muted)',
     textTransform: 'uppercase',
-    letterSpacing: '0.04em',
+    letterSpacing: '0.03em',
+    display: 'block',
     marginBottom: '2px',
   },
   greekVal: {
     fontSize: '13px',
     fontWeight: 600,
-    color: 'var(--text-white)',
+    color: 'var(--text-heading)',
+    display: 'block',
   },
   greekSub: {
-    fontSize: '8.5px',
+    fontSize: '9px',
     color: 'var(--text-muted)',
     marginTop: '2px',
   },
 
-  // Quick order
-  quickOrderBody: { padding: '8px', display: 'flex', flexDirection: 'column', gap: '6px' },
-  quickOrderGrid: { display: 'flex', flexDirection: 'column', gap: '4px' },
-  quickBtn: {
+  orderEntryBody: {
+    padding: '8px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+  },
+  orderBtnsGrid: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px',
+  },
+  quickOrderBtn: {
     display: 'flex',
     flexDirection: 'column',
     padding: '6px 8px',
-    background: 'var(--bg-panel-2)',
-    border: '1px solid var(--border-2)',
-    borderRadius: '3px',
+    backgroundColor: 'var(--bg-surface)',
+    border: '1px solid var(--border-main)',
+    borderRadius: 'var(--radius-sm)',
     cursor: 'pointer',
     textAlign: 'left',
     transition: 'all 120ms ease',
   },
-  quickBtnLabel: { fontSize: '11px', fontWeight: 600, color: 'var(--text-white)' },
-  quickBtnPrice: { fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)' },
-  quickBtnSub: { fontSize: '9px', color: 'var(--text-muted)' },
   riskNotice: {
     display: 'flex',
     alignItems: 'center',
@@ -740,33 +870,32 @@ const S = {
     fontSize: '9.5px',
     color: 'var(--text-muted)',
     padding: '4px 6px',
-    background: 'rgba(255, 255, 255, 0.02)',
-    borderRadius: '3px',
+    backgroundColor: 'var(--bg-surface)',
+    borderRadius: 'var(--radius-sm)',
+    lineHeight: 1.3,
   },
 
-  // Bottom dock
-  dockWrap: {
-    height: '180px',
-    background: 'var(--bg-panel)',
-    borderTop: '1px solid var(--border-1)',
+  bottomDock: {
+    height: '185px',
+    backgroundColor: 'var(--bg-card)',
     display: 'flex',
     flexDirection: 'column',
     flexShrink: 0,
   },
-  dockTabBar: {
+  bottomTabBar: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '0 8px',
-    background: 'var(--bg-panel-2)',
-    borderBottom: '1px solid var(--border-1)',
-    height: '28px',
+    backgroundColor: 'var(--bg-surface)',
+    borderBottom: '1px solid var(--border-main)',
+    height: '30px',
     flexShrink: 0,
   },
   dockTab: {
     padding: '4px 10px',
-    fontSize: '11px',
-    background: 'transparent',
+    fontSize: '11.5px',
+    backgroundColor: 'transparent',
     border: 'none',
     borderBottom: '2px solid transparent',
     color: 'var(--text-muted)',
@@ -774,19 +903,11 @@ const S = {
     fontWeight: 500,
   },
   dockTabActive: {
-    color: 'var(--text-white)',
-    borderBottomColor: '#3b82f6',
+    color: 'var(--text-heading)',
+    borderBottomColor: 'var(--navy)',
     fontWeight: 600,
   },
   dockMeta: { display: 'flex', alignItems: 'center', gap: '8px' },
-  dockMetaSep: { width: 1, height: 12, background: 'var(--border-1)' },
+  dockMetaSep: { width: 1, height: 12, backgroundColor: 'var(--border-main)' },
   dockTableWrap: { flex: 1, overflow: 'auto' },
-  emptyState: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100%',
-    padding: '20px',
-  },
 };
