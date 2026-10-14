@@ -1,6 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useTrading } from '../context/TradingContext';
-import { ShieldAlert, AlertTriangle, Sun, Moon, Lock, CheckCircle2, ChevronDown, Info } from 'lucide-react';
+import {
+  ShieldAlert,
+  AlertTriangle,
+  Sun,
+  Moon,
+  Lock,
+  CheckCircle2,
+  PanelLeftClose,
+  PanelLeft,
+  Activity
+} from 'lucide-react';
 
 export const Header = () => {
   const {
@@ -9,7 +19,8 @@ export const Header = () => {
     accountCapital, marginAvailable,
     totalNetPnl, riskRules,
     setPanicModalOpen,
-    paperCriteria
+    paperCriteria,
+    sidebarCollapsed, toggleSidebar
   } = useTrading();
 
   const [now, setNow] = useState(new Date());
@@ -34,356 +45,196 @@ export const Header = () => {
   const pnlPct = ((totalNetPnl / accountCapital) * 100).toFixed(2);
 
   return (
-    <header style={S.header}>
-      {/* ── Brand, Status & Mode ── */}
-      <div style={S.left}>
-        <div style={S.brand}>
-          <div style={S.brandMonogram}>N</div>
-          <div>
-            <div style={S.brandName}>NavsTrade</div>
-            <div style={S.brandSub}>OPTIONS WORKSTATION · NSE</div>
+    <header className="workstation-header">
+      {/* ── Left: Sidebar Toggle, Brand & Consolidated Market Status ── */}
+      <div className="header-left">
+        {/* Sidebar Collapse / Expand Toggle */}
+        <button
+          type="button"
+          className="header-icon-btn"
+          onClick={toggleSidebar}
+          title={`${sidebarCollapsed ? 'Expand' : 'Collapse'} Sidebar (Ctrl+B)`}
+          aria-label="Toggle Sidebar"
+        >
+          {sidebarCollapsed ? <PanelLeft size={16} /> : <PanelLeftClose size={16} />}
+        </button>
+
+        {/* Brand Monogram & Name */}
+        <div className="header-brand">
+          <div className="brand-badge">N</div>
+          <div className="brand-meta">
+            <span className="brand-title">NavsTrade</span>
+            <span className="brand-tag">NSE F&amp;O</span>
           </div>
         </div>
 
-        <div style={S.divider} />
+        <div className="header-divider" />
 
-        {/* Market Status & IST Clock */}
-        <div style={S.chip}>
+        {/* Consolidated Market & API Status Pill */}
+        <div className="header-status-pill">
           <span
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: '50%',
-              backgroundColor: isMarketOpen ? 'var(--profit)' : 'var(--text-muted)',
-              display: 'inline-block',
-              flexShrink: 0
-            }}
+            className={`status-dot ${isMarketOpen ? 'dot-live' : 'dot-closed'}`}
+            title={isMarketOpen ? 'NSE Live Session (09:15 - 15:30 IST)' : 'Market Closed'}
           />
-          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-            {isMarketOpen ? 'Market Open' : 'Market Closed'}
-          </span>
-          <span className="font-num" style={S.clock}>
-            {timeStr} IST
-          </span>
-        </div>
-
-        {/* API Mode Badge */}
-        <div style={S.chip}>
-          <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>Mode:</span>
-          <span
-            className="font-num"
-            style={{
-              fontSize: '11px',
-              fontWeight: 600,
-              color: tradingMode === 'LIVE_UPSTOX' ? 'var(--loss)' : 'var(--navy)'
-            }}
-          >
-            {tradingMode === 'LIVE_UPSTOX' ? 'LIVE (UPSTOX)' : 'PAPER SIM'}
+          <span className="status-label">{isMarketOpen ? 'LIVE' : 'CLOSED'}</span>
+          <span className="font-num status-clock">{timeStr}</span>
+          <span className="status-sep">/</span>
+          <span className={`status-mode ${tradingMode === 'LIVE_UPSTOX' ? 'mode-live' : 'mode-paper'}`}>
+            {tradingMode === 'LIVE_UPSTOX' ? 'UPSTOX LIVE' : 'PAPER'}
           </span>
         </div>
       </div>
 
-      {/* ── Center Telemetry Strip (Single line, generous height, no bottom clipping) ── */}
-      <div style={S.center}>
-        <div style={S.telemetryItem}>
-          <span style={S.telemetryLabel}>CAPITAL</span>
-          <span className="font-num num-fade" style={S.telemetryVal}>
-            ₹{accountCapital.toLocaleString('en-IN')}
-          </span>
-        </div>
-
-        <div style={S.telemetrySep} />
-
-        <div style={S.telemetryItem}>
-          <span style={S.telemetryLabel}>MARGIN AVAILABLE</span>
-          <span className="font-num num-fade" style={S.telemetryVal}>
-            ₹{marginAvailable.toLocaleString('en-IN')}
-          </span>
-        </div>
-
-        <div style={S.telemetrySep} />
-
-        <div style={S.telemetryItem}>
-          <span style={S.telemetryLabel}>DAY P&L</span>
-          <span
-            className="font-num num-fade"
-            style={{
-              ...S.telemetryVal,
-              color: pnlPositive ? 'var(--profit)' : 'var(--loss)',
-              fontWeight: 600,
-            }}
-          >
-            {pnlPositive ? '+' : ''}₹{totalNetPnl.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            <span style={{ fontSize: '10.5px', marginLeft: 4, opacity: 0.9 }}>
-              ({pnlPositive ? '+' : ''}{pnlPct}%)
+      {/* ── Center: Sleek Institutional Telemetry (Fluid, Never Cluttered, Guaranteed No Overflow) ── */}
+      <div className="header-center">
+        <div className="telemetry-strip">
+          {/* Capital */}
+          <div className="telemetry-cell">
+            <span className="telemetry-lbl">CAPITAL</span>
+            <span className="font-num telemetry-val">
+              ₹{(accountCapital / 100000).toFixed(2)}L
             </span>
-          </span>
-        </div>
+          </div>
 
-        <div style={S.telemetrySep} />
+          <div className="telemetry-divider" />
 
-        <div
-          style={{
-            ...S.telemetryItem,
-            ...(riskRules.killSwitchActive ? S.telemetryKill : {})
-          }}
-        >
-          <span style={S.telemetryLabel}>
-            <ShieldAlert size={11} style={{ marginRight: 3, verticalAlign: 'middle', color: riskRules.killSwitchActive ? 'var(--loss)' : 'var(--text-muted)' }} />
-            KILL-SWITCH
-          </span>
-          <span
-            className="font-num"
-            style={{
-              ...S.telemetryVal,
-              color: riskRules.killSwitchActive ? 'var(--loss)' : 'var(--text-secondary)',
-              fontWeight: riskRules.killSwitchActive ? 700 : 500,
-            }}
-          >
-            {riskRules.killSwitchActive ? 'TRIGGERED (HALT)' : `Armed (-₹${riskRules.maxDailyLoss.toLocaleString('en-IN')})`}
-          </span>
+          {/* Margin */}
+          <div className="telemetry-cell">
+            <span className="telemetry-lbl">AVAIL MARGIN</span>
+            <span className="font-num telemetry-val">
+              ₹{(marginAvailable / 100000).toFixed(2)}L
+            </span>
+          </div>
+
+          <div className="telemetry-divider" />
+
+          {/* Day P&L */}
+          <div className="telemetry-cell">
+            <span className="telemetry-lbl">DAY P&amp;L</span>
+            <span
+              className={`font-num telemetry-val ${pnlPositive ? 'text-profit' : 'text-loss'}`}
+              style={{ fontWeight: 700 }}
+            >
+              {pnlPositive ? '+' : ''}₹{totalNetPnl.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              <span className="telemetry-subval">
+                ({pnlPositive ? '+' : ''}{pnlPct}%)
+              </span>
+            </span>
+          </div>
+
+          <div className="telemetry-divider" />
+
+          {/* Risk Limit Circuit */}
+          <div className={`telemetry-cell ${riskRules.killSwitchActive ? 'cell-danger' : ''}`}>
+            <span className="telemetry-lbl">
+              <ShieldAlert size={10} style={{ marginRight: 2, verticalAlign: 'middle' }} />
+              LIMIT
+            </span>
+            <span
+              className="font-num telemetry-val"
+              style={{
+                color: riskRules.killSwitchActive ? 'var(--loss)' : 'var(--text-secondary)',
+                fontWeight: riskRules.killSwitchActive ? 700 : 600
+              }}
+            >
+              {riskRules.killSwitchActive ? 'TRIGGERED' : `-₹${(riskRules.maxDailyLoss / 1000).toFixed(0)}k`}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* ── Right Actions ── */}
-      <div style={S.right}>
-        {/* Go Live Button with Explicit 20 Criteria Tooltip Popover */}
+      {/* ── Right: Execution Controls & ALWAYS-VISIBLE Segmented Theme Toggle ── */}
+      <div className="header-right">
+        {/* Go Live Locked Gate */}
         <div
-          style={{ position: 'relative' }}
+          className="criteria-gate-wrap"
           onMouseEnter={() => setShowCriteriaModal(true)}
           onMouseLeave={() => setShowCriteriaModal(false)}
         >
           <button
             type="button"
-            className="btn btn-outline btn-sm btn-disabled"
+            className="btn btn-outline btn-sm btn-disabled gate-btn"
             onClick={() => setShowCriteriaModal(!showCriteriaModal)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-              backgroundColor: 'var(--bg-card)',
-              borderColor: 'var(--border-main)'
-            }}
           >
-            <Lock size={12} style={{ color: 'var(--text-muted)' }} />
-            <span>Go Live</span>
-            <span className="font-num" style={{ fontSize: '10.5px', fontWeight: 600, color: 'var(--navy)' }}>
-              ({paperCriteria.completed}/{paperCriteria.required})
+            <Lock size={11} style={{ color: 'var(--text-muted)' }} />
+            <span className="gate-btn-txt">Go Live</span>
+            <span className="font-num gate-count">
+              {paperCriteria.completed}/{paperCriteria.required}
             </span>
           </button>
 
           {/* Criteria Popover Tooltip */}
           {showCriteriaModal && (
-            <div style={S.criteriaPopover}>
-              <div style={S.criteriaHdr}>
+            <div className="criteria-popover">
+              <div className="popover-hdr">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Lock size={12} style={{ color: 'var(--navy)' }} />
                   <span style={{ fontWeight: 600, color: 'var(--text-heading)', fontSize: '11.5px' }}>
-                    Live Capital Gate (20 Discipline Criteria)
+                    Live Capital Gate (20 Rules)
                   </span>
                 </div>
-                <span className="font-num" style={{ fontSize: '10px', color: 'var(--navy)', fontWeight: 600 }}>
+                <span className="font-num" style={{ fontSize: '10.5px', color: 'var(--navy)', fontWeight: 700 }}>
                   14/20 Passed
                 </span>
               </div>
 
               <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '4px 0 8px 0', lineHeight: 1.4 }}>
-                To eradicate impulsive beginner losses, live broker execution via Upstox API unlocks only when all 20 risk rules are proven in paper mode:
+                Direct API trading unlocks when your execution discipline is proven in Paper mode:
               </p>
 
-              <div style={S.criteriaList}>
-                <div style={S.criteriaItem}>
+              <div className="popover-list">
+                <div className="popover-item">
                   <CheckCircle2 size={13} style={{ color: 'var(--profit)', flexShrink: 0 }} />
-                  <span>20 paper trades completed with defined SL ({paperCriteria.completed}/20 done)</span>
+                  <span>20 paper trades with hard SL ({paperCriteria.completed}/20 verified)</span>
                 </div>
-                <div style={S.criteriaItem}>
+                <div className="popover-item">
                   <CheckCircle2 size={13} style={{ color: 'var(--profit)', flexShrink: 0 }} />
                   <span>Zero kill-switch breaches in past 5 sessions (0 breaches)</span>
                 </div>
-                <div style={S.criteriaItem}>
+                <div className="popover-item">
                   <CheckCircle2 size={13} style={{ color: 'var(--profit)', flexShrink: 0 }} />
                   <span>100% adherence to ≤1.5% max capital risk per trade</span>
                 </div>
-                <div style={S.criteriaItem}>
+                <div className="popover-item">
                   <CheckCircle2 size={13} style={{ color: 'var(--profit)', flexShrink: 0 }} />
                   <span>Auto-trailing SL verified on qualifying winners</span>
                 </div>
-                <div style={S.criteriaItem}>
-                  <CheckCircle2 size={13} style={{ color: 'var(--profit)', flexShrink: 0 }} />
-                  <span>SEBI mandatory F&O risk disclosure acknowledged</span>
-                </div>
-              </div>
-
-              <div style={S.criteriaFooter}>
-                <span>Complete 6 more paper trades with stop-losses to unlock live trading.</span>
               </div>
             </div>
           )}
         </div>
 
-        {/* Square Off All Outlined Red Button */}
+        {/* Square Off All Outlined Warning Button */}
         <button
           type="button"
-          className="btn btn-outline-danger btn-sm"
-          style={{ fontWeight: 600 }}
+          className="btn btn-outline-danger btn-sm panic-btn"
           onClick={() => setPanicModalOpen(true)}
           title="Emergency square-off all active positions"
         >
-          <AlertTriangle size={12} />
-          Square Off All
+          <AlertTriangle size={11} />
+          <span>Square Off</span>
         </button>
 
-        {/* Theme Toggle (Light / Dark) */}
-        <button
-          type="button"
-          className="btn btn-outline btn-sm"
-          onClick={toggleTheme}
-          style={{ padding: '5px 8px' }}
-          title={`Switch to ${theme === 'light' ? 'Deep Slate Dark Mode' : 'Clean Light Mode'}`}
-        >
-          {theme === 'light' ? <Moon size={13} /> : <Sun size={13} />}
-        </button>
+        {/* ── THEME TOGGLE (ANCHORED, PROMINENT, NEVER HIDDEN) ── */}
+        <div className="header-theme-control">
+          <button
+            type="button"
+            className="theme-switch-pill"
+            onClick={toggleTheme}
+            title={`Switch to ${theme === 'light' ? 'Deep Slate Dark Mode' : 'Clean Light Mode'}`}
+            aria-label="Toggle visual theme"
+          >
+            <div className={`theme-pill-option ${theme === 'light' ? 'active' : ''}`}>
+              <Sun size={12} className="theme-opt-icon" />
+              <span className="theme-opt-text">Light</span>
+            </div>
+            <div className={`theme-pill-option ${theme === 'dark' ? 'active' : ''}`}>
+              <Moon size={12} className="theme-opt-icon" />
+              <span className="theme-opt-text">Dark</span>
+            </div>
+          </button>
+        </div>
       </div>
     </header>
   );
-};
-
-const S = {
-  header: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    height: 'var(--header-h)',
-    backgroundColor: 'var(--bg-header)',
-    borderBottom: '1px solid var(--border-main)',
-    padding: '0 16px',
-    gap: '14px',
-    zIndex: 100,
-    flexShrink: 0,
-    userSelect: 'none',
-  },
-  left: { display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 },
-  right: { display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 },
-  brand: { display: 'flex', alignItems: 'center', gap: '8px' },
-  brandMonogram: {
-    width: '24px',
-    height: '24px',
-    backgroundColor: 'var(--navy)',
-    color: '#FFFFFF',
-    borderRadius: 'var(--radius-sm)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '12px',
-    fontWeight: 700,
-    fontFamily: 'var(--font-ui)',
-  },
-  brandName: {
-    fontSize: '13px',
-    fontWeight: 700,
-    color: 'var(--text-heading)',
-    letterSpacing: '-0.01em',
-    lineHeight: 1.15,
-  },
-  brandSub: {
-    fontSize: '8px',
-    color: 'var(--text-muted)',
-    letterSpacing: '0.06em',
-    fontWeight: 600,
-  },
-  divider: { width: 1, height: 18, backgroundColor: 'var(--border-main)', margin: '0 2px' },
-  chip: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '4px 9px',
-    backgroundColor: 'var(--bg-surface)',
-    border: '1px solid var(--border-main)',
-    borderRadius: 'var(--radius)',
-    height: '28px',
-  },
-  clock: { fontSize: '11px', color: 'var(--text-secondary)', marginLeft: '3px' },
-
-  center: {
-    display: 'flex',
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'space-evenly',
-    maxWidth: '720px',
-    backgroundColor: 'var(--bg-surface)',
-    border: '1px solid var(--border-main)',
-    borderRadius: 'var(--radius)',
-    height: '32px',
-    padding: '0 10px',
-    overflow: 'visible',
-  },
-  telemetryItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '7px',
-    padding: '0 8px',
-    whiteSpace: 'nowrap',
-  },
-  telemetryLabel: {
-    fontSize: '9.5px',
-    fontWeight: 600,
-    color: 'var(--text-muted)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.04em',
-  },
-  telemetryVal: {
-    fontSize: '12px',
-    fontWeight: 500,
-    color: 'var(--text-primary)',
-    lineHeight: 1.2,
-  },
-  telemetrySep: { width: 1, height: 16, backgroundColor: 'var(--border-main)' },
-  telemetryKill: {
-    backgroundColor: 'var(--loss-bg)',
-    borderRadius: 'var(--radius-sm)',
-    padding: '2px 6px',
-  },
-
-  criteriaPopover: {
-    position: 'absolute',
-    top: '100%',
-    right: 0,
-    marginTop: '6px',
-    width: '320px',
-    backgroundColor: 'var(--bg-card)',
-    border: '1px solid var(--border-main)',
-    borderRadius: 'var(--radius)',
-    boxShadow: 'var(--shadow-modal)',
-    padding: '12px 14px',
-    zIndex: 500,
-  },
-  criteriaHdr: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '6px',
-    borderBottom: '1px solid var(--border-subtle)',
-    paddingBottom: '6px',
-  },
-  criteriaList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px',
-  },
-  criteriaItem: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: '7px',
-    fontSize: '11px',
-    color: 'var(--text-secondary)',
-    lineHeight: 1.35,
-  },
-  criteriaFooter: {
-    marginTop: '10px',
-    paddingTop: '8px',
-    borderTop: '1px solid var(--border-subtle)',
-    fontSize: '10.5px',
-    color: 'var(--navy)',
-    fontWeight: 500,
-  },
 };

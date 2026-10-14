@@ -18,8 +18,11 @@ export const TradingProvider = ({ children }) => {
 
   // Navigation & Mode
   const [activeTab, setActiveTab] = useState('terminal');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [tradingMode, setTradingMode] = useState('PAPER'); // 'PAPER' | 'LIVE_UPSTOX'
   const [selectedSymbol, setSelectedSymbol] = useState(WATCHLIST[0]); // NIFTY 50
+
+  const toggleSidebar = () => setSidebarCollapsed(prev => !prev);
 
   // Market & Order State
   const [watchlist, setWatchlist] = useState(WATCHLIST);
@@ -324,6 +327,7 @@ export const TradingProvider = ({ children }) => {
       value={{
         theme, setTheme, toggleTheme,
         activeTab, setActiveTab,
+        sidebarCollapsed, setSidebarCollapsed, toggleSidebar,
         tradingMode, setTradingMode,
         selectedSymbol, setSelectedSymbol,
         watchlist,

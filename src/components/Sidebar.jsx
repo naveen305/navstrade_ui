@@ -8,7 +8,11 @@ import {
   Radar,
   BookOpen,
   Settings,
-  Shield
+  Shield,
+  Sun,
+  Moon,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 const NAV = [
@@ -22,13 +26,22 @@ const NAV = [
 ];
 
 export const Sidebar = () => {
-  const { activeTab, setActiveTab, positions, riskRules, scannerSignals, journalTrades } = useTrading();
+  const {
+    activeTab, setActiveTab,
+    positions, riskRules,
+    scannerSignals, journalTrades,
+    theme, toggleTheme,
+    sidebarCollapsed, toggleSidebar
+  } = useTrading();
 
   return (
-    <aside style={S.sidebar}>
+    <aside className={`workstation-sidebar ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       {/* Navigation list */}
-      <nav style={S.nav}>
-        <div style={S.navSectionTitle}>WORKSTATION</div>
+      <nav className="sidebar-nav">
+        {!sidebarCollapsed && (
+          <div className="sidebar-section-title">WORKSTATION</div>
+        )}
+
         {NAV.map(({ id, icon: Icon, label }) => {
           const active = activeTab === id;
           let badge = null;
@@ -40,167 +53,101 @@ export const Sidebar = () => {
             <button
               key={id}
               type="button"
-              style={{
-                ...S.navItem,
-                ...(active ? S.navItemActive : {}),
-              }}
+              className={`sidebar-nav-item ${active ? 'active' : ''}`}
               onClick={() => setActiveTab(id)}
+              title={sidebarCollapsed ? label : undefined}
             >
               <Icon
-                size={14}
-                style={{
-                  color: active ? 'var(--navy)' : 'var(--text-muted)',
-                  flexShrink: 0,
-                }}
+                size={15}
+                className="sidebar-nav-icon"
               />
-              <span
-                style={{
-                  fontSize: '12px',
-                  fontWeight: active ? 600 : 400,
-                  color: active ? 'var(--text-heading)' : 'var(--text-secondary)',
-                  flex: 1,
-                  textAlign: 'left',
-                }}
-              >
-                {label}
-              </span>
-              {badge !== null && (
-                <span
-                  className="font-num"
-                  style={{
-                    fontSize: '10px',
-                    fontWeight: 500,
-                    color: active ? 'var(--navy)' : 'var(--text-muted)',
-                    backgroundColor: active ? 'var(--navy-bg)' : 'var(--bg-surface)',
-                    padding: '1px 5px',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-subtle)',
-                  }}
-                >
-                  {badge}
-                </span>
+              {!sidebarCollapsed && (
+                <>
+                  <span className="sidebar-nav-label">
+                    {label}
+                  </span>
+                  {badge !== null && (
+                    <span className="font-num sidebar-badge">
+                      {badge}
+                    </span>
+                  )}
+                </>
               )}
             </button>
           );
         })}
       </nav>
 
-      {/* Bottom Risk Discipline Summary Card */}
-      <div style={S.footer}>
-        <div style={S.disciplineCard}>
-          <div style={S.discHeader}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <Shield size={12} style={{ color: 'var(--profit)' }} />
-              <span style={S.discTitle}>RISK DISCIPLINE</span>
-            </div>
-            <span style={{ fontSize: '9px', fontWeight: 600, color: 'var(--profit)' }}>
-              ENFORCED
-            </span>
-          </div>
+      {/* Footer Area */}
+      <div className="sidebar-footer">
+        {!sidebarCollapsed ? (
+          <>
+            {/* Risk Discipline Card */}
+            <div className="discipline-card">
+              <div className="disc-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <Shield size={12} style={{ color: 'var(--profit)' }} />
+                  <span className="disc-title">RISK DISCIPLINE</span>
+                </div>
+                <span className="disc-status">ENFORCED</span>
+              </div>
 
-          <div style={S.discMetrics}>
-            <div style={S.discRow}>
-              <span style={S.discLbl}>Cap / Trade</span>
-              <span className="font-num" style={S.discVal}>{riskRules.maxCapitalRiskPct}%</span>
+              <div className="disc-metrics">
+                <div className="disc-row">
+                  <span className="disc-lbl">Cap / Trade</span>
+                  <span className="font-num disc-val">{riskRules.maxCapitalRiskPct}%</span>
+                </div>
+                <div className="disc-row">
+                  <span className="disc-lbl">Open Positions</span>
+                  <span className="font-num disc-val">{positions.length} / {riskRules.maxOpenTrades}</span>
+                </div>
+                <div className="disc-row">
+                  <span className="disc-lbl">Trailing SL</span>
+                  <span className="font-num disc-val text-profit">Auto (1:1.5)</span>
+                </div>
+              </div>
             </div>
-            <div style={S.discRow}>
-              <span style={S.discLbl}>Open Positions</span>
-              <span className="font-num" style={S.discVal}>{positions.length} / {riskRules.maxOpenTrades}</span>
-            </div>
-            <div style={S.discRow}>
-              <span style={S.discLbl}>Trailing SL</span>
-              <span className="font-num" style={{ ...S.discVal, color: 'var(--profit)' }}>Auto (1:1.5)</span>
-            </div>
+
+            {/* Sidebar Secondary Theme Button */}
+            <button
+              type="button"
+              className="btn btn-outline sidebar-theme-btn"
+              onClick={toggleTheme}
+            >
+              {theme === 'light' ? (
+                <>
+                  <Moon size={12} style={{ color: 'var(--text-secondary)' }} />
+                  <span>Dark Theme</span>
+                </>
+              ) : (
+                <>
+                  <Sun size={12} style={{ color: 'var(--warning)' }} />
+                  <span>Light Theme</span>
+                </>
+              )}
+            </button>
+          </>
+        ) : (
+          <div className="collapsed-footer-actions">
+            <button
+              type="button"
+              className="collapsed-action-btn"
+              onClick={toggleTheme}
+              title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
+            >
+              {theme === 'light' ? <Moon size={14} /> : <Sun size={14} style={{ color: 'var(--warning)' }} />}
+            </button>
+            <button
+              type="button"
+              className="collapsed-action-btn"
+              onClick={toggleSidebar}
+              title="Expand Sidebar (Ctrl+B)"
+            >
+              <ChevronRight size={14} />
+            </button>
           </div>
-        </div>
+        )}
       </div>
     </aside>
   );
-};
-
-const S = {
-  sidebar: {
-    width: 'var(--sidebar-w)',
-    minWidth: 'var(--sidebar-w)',
-    backgroundColor: 'var(--bg-sidebar)',
-    borderRight: '1px solid var(--border-main)',
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100%',
-    flexShrink: 0,
-    userSelect: 'none',
-  },
-  nav: {
-    padding: '8px 6px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px',
-    flex: 1,
-  },
-  navSectionTitle: {
-    fontSize: '9px',
-    fontWeight: 700,
-    color: 'var(--text-muted)',
-    letterSpacing: '0.08em',
-    padding: '6px 8px 4px',
-  },
-  navItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '6px 8px',
-    borderRadius: 'var(--radius)',
-    backgroundColor: 'transparent',
-    border: '1px solid transparent',
-    cursor: 'pointer',
-    width: '100%',
-    transition: 'all 120ms ease',
-  },
-  navItemActive: {
-    backgroundColor: 'var(--bg-card)',
-    borderColor: 'var(--border-main)',
-  },
-  footer: {
-    borderTop: '1px solid var(--border-main)',
-    padding: '8px',
-  },
-  disciplineCard: {
-    padding: '8px 10px',
-    backgroundColor: 'var(--bg-card)',
-    border: '1px solid var(--border-main)',
-    borderRadius: 'var(--radius)',
-  },
-  discHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: '6px',
-    paddingBottom: '4px',
-    borderBottom: '1px solid var(--border-subtle)',
-  },
-  discTitle: {
-    fontSize: '9.5px',
-    fontWeight: 700,
-    color: 'var(--text-heading)',
-    letterSpacing: '0.04em',
-  },
-  discMetrics: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '3px',
-  },
-  discRow: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  discLbl: {
-    fontSize: '10px',
-    color: 'var(--text-muted)',
-  },
-  discVal: {
-    fontSize: '11px',
-    color: 'var(--text-primary)',
-    fontWeight: 500,
-  },
 };

@@ -2,52 +2,52 @@
 
 /* ==========================================================================
    NAVSTRADE — Disciplined Options Trading Workstation (NSE F&O)
-   Style: Classic, Professional, Calm & Elegant (Private-Banking / Bloomberg-Lite)
-   Light theme by default with optional deep slate dark mode.
+   Style: Ultra-Clean, Modern Private-Banking / Institutional Swiss Design
+   Typography: Plus Jakarta Sans for UI, JetBrains Mono for Numbers
    ========================================================================== */
 
 :root {
-  /* --- LIGHT THEME (DEFAULT: CRISP, REFINED PRIVATE-BANKING) --- */
-  --bg-page: #F8F9FA;          /* Crisp neutral light canvas */
-  --bg-card: #FFFFFF;          /* Pure white cards */
-  --bg-surface: #F1F3F5;       /* Crisp slate surface background */
-  --bg-surface-hover: #E9ECEF; /* Crisp hover background */
-  --bg-sidebar: #FFFFFF;       /* Clean sidebar background */
-  --bg-header: #FFFFFF;        /* Top bar background */
-  --bg-table-header: #F8F9FA;  /* Clean table header row */
-  --bg-input: #FFFFFF;         /* Form input field */
+  /* --- REFINED LIGHT THEME (DEFAULT: CRISP, MODERN INSTITUTIONAL) --- */
+  --bg-page: #F8FAFC;          /* Clean slate-50 neutral canvas */
+  --bg-card: #FFFFFF;          /* Pure crisp white cards */
+  --bg-surface: #F1F5F9;       /* Crisp slate-100 surface background */
+  --bg-surface-hover: #E2E8F0; /* Slate-200 hover background */
+  --bg-sidebar: #FFFFFF;       /* Clean pure white sidebar */
+  --bg-header: #FFFFFF;        /* Crisp top bar */
+  --bg-table-header: #F8FAFC;  /* Clean table header row */
+  --bg-input: #FFFFFF;         /* Crisp form input field */
 
   /* Borders & Dividers */
-  --border-main: #E2E6EA;      /* 1px crisp clean border */
-  --border-subtle: #EDF0F3;    /* Secondary subtle divider */
-  --border-focus: #1E3A5F;     /* Active focus border */
+  --border-main: #E2E8F0;      /* 1px crisp clean border (Slate-200) */
+  --border-subtle: #F1F5F9;    /* Secondary subtle divider (Slate-100) */
+  --border-focus: #0F2744;     /* Deep navy active focus border */
 
   /* Typography */
-  --text-primary: #0F172A;     /* Deep crisp slate navy primary text */
-  --text-secondary: #475569;   /* Slate secondary info / headers */
-  --text-muted: #8F9AA8;       /* Placeholder, disabled, micro-labels */
-  --text-heading: #0F172A;     /* High-emphasis text */
+  --text-primary: #0F172A;     /* Slate-900: sharp, rich contrast */
+  --text-secondary: #475569;   /* Slate-600: balanced reading contrast */
+  --text-muted: #8E9BAE;       /* Slate-400: micro-labels, dates */
+  --text-heading: #020617;     /* Slate-950: high-emphasis titles */
 
-  /* Semantic Financial Colors (Muted, Calm, Not Bright) */
-  --navy: #1E3A5F;             /* Primary accent deep institutional navy */
-  --navy-bg: rgba(30, 58, 95, 0.08);
-  --navy-border: rgba(30, 58, 95, 0.25);
+  /* Semantic Financial Colors (Calm, Muted, Dignified) */
+  --navy: #0F2744;             /* Deep prestige institutional navy */
+  --navy-bg: rgba(15, 39, 68, 0.08);
+  --navy-border: rgba(15, 39, 68, 0.22);
 
-  --profit: #1B7F53;           /* Muted dignified forest green */
-  --profit-bg: rgba(27, 127, 83, 0.09);
-  --profit-border: rgba(27, 127, 83, 0.25);
+  --profit: #0D824D;           /* Muted dignified forest green */
+  --profit-bg: rgba(13, 130, 77, 0.08);
+  --profit-border: rgba(13, 130, 77, 0.22);
 
-  --loss: #B93846;             /* Muted brick crimson red */
-  --loss-bg: rgba(185, 56, 70, 0.09);
-  --loss-border: rgba(185, 56, 70, 0.25);
+  --loss: #BE253A;             /* Muted brick crimson red */
+  --loss-bg: rgba(190, 37, 58, 0.08);
+  --loss-border: rgba(190, 37, 58, 0.22);
 
-  --warning: #B0741B;          /* Soft amber */
-  --warning-bg: rgba(176, 116, 27, 0.09);
-  --warning-border: rgba(176, 116, 27, 0.25);
+  --warning: #B45309;          /* Warm bronze amber */
+  --warning-bg: rgba(180, 83, 9, 0.08);
+  --warning-border: rgba(180, 83, 9, 0.22);
 
-  /* Fonts */
-  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-num: 'IBM Plex Mono', monospace;
+  /* Fonts: Plus Jakarta Sans for UI + JetBrains Mono for Numbers */
+  --font-ui: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-num: 'JetBrains Mono', 'IBM Plex Mono', monospace;
 
   /* Sizing & Geometry */
   --header-h: 52px;
@@ -55,48 +55,49 @@
   --radius: 6px;
   --radius-sm: 4px;
 
-  /* Shadows (Only subtle shadow on modals) */
-  --shadow-modal: 0 12px 36px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
-  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.04);
+  /* Shadows (Subtle, clean, not heavy) */
+  --shadow-modal: 0 16px 40px rgba(15, 23, 42, 0.12), 0 4px 12px rgba(15, 23, 42, 0.06);
+  --shadow-subtle: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
-/* --- DARK THEME (OPTIONAL TOGGLE: DEEP SLATE #14171C, NEVER PURE BLACK) --- */
+/* --- REFINED DARK THEME (OPTIONAL TOGGLE: DEEP SLATE #0B0F17, NEVER PURE BLACK) --- */
 html.dark {
-  --bg-page: #14171C;          /* Deep slate, never pure black */
-  --bg-card: #1C2028;          /* Panel / card background */
-  --bg-surface: #222732;       /* Subtle surface */
-  --bg-surface-hover: #29303D; /* Hover background */
-  --bg-sidebar: #171A21;       /* Sidebar background */
-  --bg-header: #171A21;        /* Header background */
-  --bg-table-header: #1E232C;  /* Table header */
-  --bg-input: #171A21;         /* Input field */
+  --bg-page: #0B0F17;          /* Deep night slate */
+  --bg-card: #131A26;          /* Sleek dark card surface */
+  --bg-surface: #1A2333;       /* Subtle dark surface */
+  --bg-surface-hover: #222E42; /* Dark hover */
+  --bg-sidebar: #0E141E;       /* Sidebar background */
+  --bg-header: #0E141E;        /* Top bar background */
+  --bg-table-header: #141C2A;  /* Table header */
+  --bg-input: #101722;         /* Input field */
 
-  --border-main: #2A303C;      /* 1px dark border */
-  --border-subtle: #232832;    /* Subtle dark divider */
-  --border-focus: #4F80BF;     /* Active dark focus border */
+  --border-main: #1F2C40;      /* 1px dark border */
+  --border-subtle: #172130;    /* Subtle dark divider */
+  --border-focus: #3B82F6;     /* Active dark focus border */
 
-  --text-primary: #E2E6ED;     /* Slate-white text */
-  --text-secondary: #9AA3B2;   /* Secondary muted info */
-  --text-muted: #646E80;       /* Micro-labels */
-  --text-heading: #F3F5F8;
+  --text-primary: #E2E8F0;     /* Slate-100 text */
+  --text-secondary: #94A3B8;   /* Slate-400 */
+  --text-muted: #64748B;       /* Slate-500 micro-labels */
+  --text-heading: #F8FAFC;     /* Slate-50 */
 
-  --navy: #4F80BF;             /* Adjusted lighter navy for dark mode legibility */
-  --navy-bg: rgba(79, 128, 191, 0.12);
-  --navy-border: rgba(79, 128, 191, 0.35);
+  --navy: #3B82F6;             /* Clean balanced modern blue */
+  --navy-bg: rgba(59, 130, 246, 0.12);
+  --navy-border: rgba(59, 130, 246, 0.3);
 
-  --profit: #389E73;           /* Calm muted green for dark mode */
-  --profit-bg: rgba(56, 158, 115, 0.12);
-  --profit-border: rgba(56, 158, 115, 0.35);
+  --profit: #10B981;           /* Calm emerald */
+  --profit-bg: rgba(16, 185, 129, 0.12);
+  --profit-border: rgba(16, 185, 129, 0.3);
 
-  --loss: #CC4D5E;             /* Muted brick red for dark mode */
-  --loss-bg: rgba(204, 77, 94, 0.12);
-  --loss-border: rgba(204, 77, 94, 0.35);
+  --loss: #EF4444;             /* Calm red */
+  --loss-bg: rgba(239, 68, 68, 0.12);
+  --loss-border: rgba(239, 68, 68, 0.3);
 
-  --warning: #D69128;          /* Soft amber for dark mode */
-  --warning-bg: rgba(214, 145, 40, 0.12);
-  --warning-border: rgba(214, 145, 40, 0.35);
+  --warning: #F59E0B;          /* Calm amber */
+  --warning-bg: rgba(245, 158, 11, 0.12);
+  --warning-border: rgba(245, 158, 11, 0.3);
 
-  --shadow-modal: 0 16px 48px rgba(0, 0, 0, 0.45);
+  --shadow-modal: 0 20px 50px rgba(0, 0, 0, 0.5);
+  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 /* === Global Reset & Base Setup === */
@@ -107,7 +108,7 @@ html.dark {
 }
 
 html {
-  font-size: 14px; /* Base 14px */
+  font-size: 14px;
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }
 
@@ -124,11 +125,11 @@ body {
   user-select: none;
 }
 
-/* === Numbers Typography (IBM Plex Mono + Tabular Figures) === */
+/* === Numbers Typography (JetBrains Mono / IBM Plex Mono + Tabular Figures) === */
 .font-num {
   font-family: var(--font-num) !important;
   font-variant-numeric: tabular-nums lining-nums;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 /* Number Fade Transition (150ms colour fade, nothing more) */
@@ -156,8 +157,8 @@ body {
   align-items: center;
   gap: 6px;
   font-family: var(--font-ui);
-  font-size: 12.5px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
   padding: 6px 12px;
   border-radius: var(--radius);
   border: 1px solid transparent;
@@ -176,12 +177,12 @@ body {
 .btn-primary:hover { opacity: 0.92; }
 
 .btn-outline {
-  background-color: transparent;
+  background-color: var(--bg-card);
   border-color: var(--border-main);
   color: var(--text-secondary);
 }
 .btn-outline:hover {
-  background-color: var(--bg-surface-hover);
+  background-color: var(--bg-surface);
   color: var(--text-primary);
   border-color: var(--text-muted);
 }
@@ -198,11 +199,11 @@ body {
 
 .btn-sm {
   padding: 4px 9px;
-  font-size: 11.5px;
+  font-size: 11px;
 }
 
 .btn-disabled {
-  opacity: 0.45;
+  opacity: 0.5;
   cursor: not-allowed !important;
   pointer-events: auto;
 }
@@ -277,8 +278,8 @@ body {
   gap: 4px;
   font-size: 10px;
   font-weight: 600;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
+  padding: 2px 7px;
+  border-radius: 4px;
   letter-spacing: 0.02em;
   text-transform: uppercase;
   border: 1px solid transparent;

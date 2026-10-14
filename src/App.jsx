@@ -26,8 +26,31 @@ const VIEWS = {
 };
 
 const AppShell = () => {
-  const { activeTab, toastMessage, riskBanner, clearRiskBanner } = useTrading();
+  const {
+    activeTab,
+    toastMessage,
+    riskBanner,
+    clearRiskBanner,
+    toggleSidebar,
+    toggleTheme
+  } = useTrading();
   const View = VIEWS[activeTab] || TerminalView;
+
+  // Global Keyboard Shortcuts (Ctrl/Cmd + B for Sidebar, Ctrl/Cmd + D for Theme)
+  React.useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        toggleSidebar();
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        toggleTheme();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggleSidebar, toggleTheme]);
 
   return (
     <div className="app-root">
