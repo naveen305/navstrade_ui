@@ -14,7 +14,7 @@ const TradingContext = createContext();
 
 export const TradingProvider = ({ children }) => {
   // Theme: Light by default (as explicitly requested: warm off-white #F7F6F3 background)
-  const [theme, setTheme] = useState('dark'); // 'light' | 'dark'
+  const [theme, setTheme] = useState('light'); // 'light' | 'dark'
 
   // Navigation & Mode
   const [activeTab, setActiveTab] = useState('terminal');

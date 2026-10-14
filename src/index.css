@@ -1,6 +1,34 @@
 @import "tailwindcss";
 
 :root {
+  --ink: #f6f8f6;
+  --ink-soft: #eef2ef;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-hover: #f1f5f2;
+  --sidebar: #ffffff;
+  --line: rgba(20, 39, 27, .10);
+  --line-strong: rgba(20, 39, 27, .16);
+  --text: #15241b;
+  --muted: #617167;
+  --faint: #859188;
+  --accent: #205c4b;
+  --accent-soft: rgba(32, 92, 75, .085);
+  --accent-border: rgba(32, 92, 75, .25);
+  --positive: #287b49;
+  --positive-soft: rgba(40, 123, 73, .10);
+  --negative: #b85b38;
+  --negative-soft: rgba(184, 91, 56, .105);
+  --warning: #97751e;
+  --warning-soft: rgba(151, 117, 30, .11);
+  --danger: #bf5357;
+  --danger-soft: rgba(191, 83, 87, .10);
+  --font-ui: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-number: "SF Mono", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+  color-scheme: light;
+}
+
+html.dark {
   --ink: #131915;
   --ink-soft: #1b241f;
   --surface: #202a24;
@@ -23,35 +51,7 @@
   --warning-soft: rgba(244, 202, 112, .12);
   --danger: #ff7979;
   --danger-soft: rgba(255, 121, 121, .12);
-  --font-ui: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-number: "SF Mono", "Cascadia Code", "Roboto Mono", Consolas, monospace;
   color-scheme: dark;
-}
-
-html.light {
-  --ink: #f4f6f0;
-  --ink-soft: #edf1ea;
-  --surface: #ffffff;
-  --surface-raised: #f6f8f3;
-  --surface-hover: #e9eee6;
-  --sidebar: #182018;
-  --line: rgba(23, 37, 24, .11);
-  --line-strong: rgba(23, 37, 24, .17);
-  --text: #182018;
-  --muted: #60705f;
-  --faint: #829080;
-  --accent: #6d9d13;
-  --accent-soft: rgba(109, 157, 19, .1);
-  --accent-border: rgba(109, 157, 19, .28);
-  --positive: #4f8e1c;
-  --positive-soft: rgba(79, 142, 28, .11);
-  --negative: #c76734;
-  --negative-soft: rgba(199, 103, 52, .12);
-  --warning: #a77816;
-  --warning-soft: rgba(167, 120, 22, .13);
-  --danger: #cd5555;
-  --danger-soft: rgba(205, 85, 85, .12);
-  color-scheme: light;
 }
 
 * { box-sizing: border-box; }

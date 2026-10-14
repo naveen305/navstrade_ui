@@ -106,3 +106,52 @@
 @media (max-width: 1180px) { .header-center-message { display: none; }.desk-layout { grid-template-columns: minmax(0,1fr) 280px; }.dashboard-metrics { grid-template-columns: repeat(2, 1fr); }.playbooks-layout { grid-template-columns: .85fr 1.15fr; }.chain-summary { grid-template-columns: 1.4fr 1fr 1fr; }.chain-summary .metric:last-child { display: none; } }
 @media (max-width: 900px) { .app-sidebar { width: 64px; padding-inline: 10px; }.app-sidebar:not(.collapsed) .sidebar-eyebrow, .app-sidebar:not(.collapsed) .sidebar-link span, .app-sidebar:not(.collapsed) .sidebar-link b, .app-sidebar:not(.collapsed) .sidebar-divider, .app-sidebar:not(.collapsed) .discipline-meter, .app-sidebar:not(.collapsed) .sidebar-account { display: none; }.app-sidebar:not(.collapsed) .sidebar-link { justify-content: center; padding-inline: 0; }.desk-layout, .risk-layout, .settings-layout, .journal-top, .playbooks-layout { grid-template-columns: 1fr; }.desk-side-column { grid-template-columns: minmax(0, 1fr) minmax(250px, .7fr); }.watchlist-panel { display: none; }.playbook-list { max-height: 250px; }.risk-overview { grid-row: 1; }.settings-side { grid-row: 1; }.journal-metrics { grid-template-columns: repeat(4,1fr); }.equity-panel { min-height: 170px; } }
 @media (max-width: 640px) { .app-header { height: 55px; padding-inline: 10px; }.brand-copy, .header-rule, .market-status, .mode-chip, .header-pnl, .header-icon:not(:first-child) { display: none; }.app-body { height: calc(100vh - 55px); }.app-sidebar, .app-sidebar.collapsed { width: 53px; padding-inline: 7px; }.sidebar-link { min-height: 42px; }.workspace-page { padding: 20px 15px 34px; }.page-header { min-height: 0; margin-bottom: 20px; align-items: flex-end; }.page-header h1 { font-size: 23px; }.page-header p { max-width: 260px; font-size: 11px; }.page-header-actions .quiet-button { display: none; }.dashboard-metrics { grid-template-columns: 1fr 1fr; }.metric { min-height: 90px; padding: 13px; }.metric strong { font-size: 16px; }.metric > span { font-size: 9px; }.desk-side-column { grid-template-columns: 1fr; }.price-panel { min-height: 330px; }.chart-detail-strip { gap: 8px 14px; }.chart-detail-strip span { font-size: 9px; }.permission-panel h2 { max-width: 100%; }.chain-summary { grid-template-columns: 1fr 1fr; }.chain-spot { grid-column: 1 / -1; }.chain-summary .metric:last-child { display: flex; }.chain-panel { min-height: 0; }.chain-key { display: none; }.filter-tabs { max-width: 100%; }.filter-tabs button { padding-inline: 6px; font-size: 8px; }.playbook-stat-grid, .risk-metrics { grid-template-columns: 1fr; }.playbook-detail { padding: 15px; }.playbook-detail-head h2 { font-size: 19px; }.playbook-action { align-items: flex-start; flex-direction: column; }.scanner-brief p { display: none; }.risk-hero { padding: 18px; align-items: flex-start; flex-direction: column; gap: 16px; }.risk-hero h2 { font-size: 22px; }.risk-hero-status { width: 100%; }.journal-metrics { grid-template-columns: 1fr 1fr; }.journal-controls { align-items: flex-start; flex-direction: column; }.mode-chooser { grid-template-columns: 1fr; }.positions-table th:nth-child(3), .positions-table td:nth-child(3), .positions-table th:nth-child(4), .positions-table td:nth-child(4), .positions-table th:nth-child(5), .positions-table td:nth-child(5) { display: none; }.app-toast { right: 12px; bottom: 12px; left: 65px; }.squareoff-button { padding: 8px; }.squareoff-button svg { margin: 0; }.squareoff-button { font-size: 0; }.risk-banner { padding-inline: 12px; font-size: 10px; } }
+
+.app-header { height: 66px; background: color-mix(in srgb, var(--surface) 94%, transparent); }
+.brand-mark { width: 29px; height: 29px; color: #ffffff; background: var(--accent); font-size: 15px; }
+.brand-copy strong { font-size: 13px; letter-spacing: .07em; }
+.brand-copy span, .market-status { font-size: 10px; letter-spacing: .09em; }
+.header-center-message { font-size: 12px; }
+.header-pnl { font-size: 13px; }
+.sidebar-link { min-height: 42px; color: var(--muted); font-size: 13px; }
+.sidebar-link:hover { color: var(--text); background: var(--surface-hover); }
+.sidebar-link.active { color: var(--accent); background: var(--accent-soft); }
+.sidebar-link b { color: #ffffff; background: var(--accent); }
+.sidebar-divider { background: var(--line); }
+.discipline-meter { border-color: var(--accent-border); background: var(--accent-soft); }
+.meter-track, .progress-track { background: var(--ink-soft); }
+.sidebar-account span { color: var(--faint); font-size: 9px; }
+.sidebar-account strong { color: var(--muted); font-size: 11px; }
+.sidebar-collapsed-shield { background: var(--accent-soft); }
+.main-content { background: radial-gradient(circle at 80% -30%, color-mix(in srgb, var(--accent) 4%, transparent), transparent 37%), var(--ink); }
+.page-header h1 { margin-bottom: 5px; font-size: 30px; }
+.page-header p { font-size: 13px; line-height: 1.5; }
+.button-primary { min-height: 38px; padding-inline: 13px; color: #ffffff; font-size: 12px; }
+.button-primary:hover:not(:disabled) { box-shadow: 0 7px 16px color-mix(in srgb, var(--accent) 20%, transparent); }
+.metric strong { font-size: 21px; }
+.metric > span { font-size: 11px; }
+.panel-heading h2 { font-size: 16px; }
+.price-panel-header h2 { font-size: 21px; }
+.price-panel-header h2 small { font-size: 11px; }
+.market-price strong { font-size: 21px; }
+.market-price span { font-size: 11px; }
+.permission-panel p { font-size: 12px; }
+.permission-checks div { font-size: 11px; }
+.check-pass, .check-fail { color: #ffffff; }
+.app-table th { padding-block: 10px; font-size: 9px; }
+.app-table td { padding-block: 12px; font-size: 11px; }
+.app-table td > strong { font-size: 11px; }
+.app-table td > span { font-size: 10px; }
+.filter-tabs button.active, .strike-cell b { color: #ffffff; }
+.switch.on i { background: #ffffff; }
+.panic-confirm { color: #ffffff; }
+html.dark .brand-mark, html.dark .sidebar-link b, html.dark .check-pass, html.dark .check-fail, html.dark .filter-tabs button.active, html.dark .strike-cell b { color: #18200f; }
+html.dark .button-primary { color: #18200f; }
+@media (max-width: 640px) {
+  .app-header { height: 55px; }
+  .app-body { height: calc(100vh - 55px); }
+  .page-header h1 { font-size: 25px; }
+  .page-header p { font-size: 12px; }
+  .metric strong { font-size: 17px; }
+  .metric > span { font-size: 10px; }
+}
